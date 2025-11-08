@@ -148,7 +148,9 @@ const Produto = () => {
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-2">{product.node.title}</h1>
                 <p className="text-3xl font-bold text-accent">
-                  {selectedVariant?.price.currencyCode} {parseFloat(selectedVariant?.price.amount || '0').toFixed(2)}
+                  {selectedVariant
+                    ? Number(selectedVariant.price.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                    : null}
                 </p>
               </div>
 

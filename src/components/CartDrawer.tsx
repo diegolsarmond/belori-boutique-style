@@ -89,7 +89,7 @@ export const CartDrawer = () => {
                           {item.selectedOptions.map(option => option.value).join(' • ')}
                         </p>
                         <p className="font-semibold">
-                          {item.price.currencyCode} {parseFloat(item.price.amount).toFixed(2)}
+                          {Number(item.price.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                       </div>
                       
@@ -132,7 +132,7 @@ export const CartDrawer = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total</span>
                   <span className="text-xl font-bold">
-                    {items[0]?.price.currencyCode || '$'} {totalPrice.toFixed(2)}
+                    {totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
                 
