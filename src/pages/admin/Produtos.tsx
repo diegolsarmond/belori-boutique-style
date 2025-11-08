@@ -95,8 +95,7 @@ export default function Produtos() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {product.node.priceRange.minVariantPrice.currencyCode}{" "}
-                        {parseFloat(product.node.priceRange.minVariantPrice.amount).toFixed(2)}
+                        {Number(product.node.priceRange.minVariantPrice.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </TableCell>
                       <TableCell>{product.node.variants.edges.length}</TableCell>
                       <TableCell>

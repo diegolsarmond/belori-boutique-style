@@ -38,7 +38,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
   const imageUrl = node.images.edges[0]?.node?.url || '/placeholder.svg';
   const price = parseFloat(node.priceRange.minVariantPrice.amount);
-  const currency = node.priceRange.minVariantPrice.currencyCode;
+  const formattedPrice = price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   return (
     <Link to={`/produto/${node.handle}`}>
@@ -58,7 +58,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </h3>
           <div className="flex items-center justify-between w-full">
             <p className="text-xl font-bold text-accent">
-              {currency} {price.toFixed(2)}
+              {formattedPrice}
             </p>
             <Button 
               size="icon" 
