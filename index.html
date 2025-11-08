@@ -19,6 +19,18 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      const isDev = import.meta.env?.DEV;
+      if (isDev) {
+        import("/src/main.tsx");
+      } else {
+        const stylesheet = document.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = "/assets/style.css";
+        stylesheet.crossOrigin = "anonymous";
+        document.head.appendChild(stylesheet);
+        import("/assets/index.js");
+      }
+    </script>
   </body>
 </html>
