@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -7,6 +7,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { CartDrawer } from "./CartDrawer";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Início", href: "/" },
@@ -18,6 +19,8 @@ const navigation = [
 ];
 
 export const Header = () => {
+  const { user, isAdmin } = useAuth();
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -42,6 +45,19 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+              <Link to="/admin">
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Link>
+            </Button>
+          )}
+          {!user && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">Entrar</Link>
+            </Button>
+          )}
           <CartDrawer />
           
           {/* Mobile Menu */}
