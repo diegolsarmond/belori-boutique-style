@@ -22,14 +22,21 @@
     <script type="module">
       const isDev = import.meta.env?.DEV;
       if (isDev) {
-        import("/src/main.tsx");
+        const devScript = document.createElement("script");
+        devScript.type = "module";
+        devScript.src = "/src/main.tsx";
+        document.body.appendChild(devScript);
       } else {
         const stylesheet = document.createElement("link");
         stylesheet.rel = "stylesheet";
         stylesheet.href = "/assets/style.css";
         stylesheet.crossOrigin = "anonymous";
         document.head.appendChild(stylesheet);
-        import("/assets/index.js");
+        const appScript = document.createElement("script");
+        appScript.type = "module";
+        appScript.src = "/assets/index.js";
+        appScript.crossOrigin = "anonymous";
+        document.body.appendChild(appScript);
       }
     </script>
   </body>
