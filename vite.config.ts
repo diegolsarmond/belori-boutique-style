@@ -16,17 +16,11 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/main.tsx"),
-      formats: ["es"],
-      fileName: () => "assets/index.js",
-      name: "BeloriApp",
-    },
     rollupOptions: {
       output: {
         entryFileNames: "assets/index.js",
-        chunkFileNames: "assets/[name].js",
-        assetFileNames: "assets/[name][extname]",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
   },
