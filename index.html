@@ -19,25 +19,6 @@
 
   <body>
     <div id="root"></div>
-    <script type="module">
-      const isDev = import.meta.env?.DEV;
-      if (isDev) {
-        const devScript = document.createElement("script");
-        devScript.type = "module";
-        devScript.src = "/src/main.tsx";
-        document.body.appendChild(devScript);
-      } else {
-        const stylesheet = document.createElement("link");
-        stylesheet.rel = "stylesheet";
-        stylesheet.href = "./assets/style.css";
-        stylesheet.crossOrigin = "anonymous";
-        document.head.appendChild(stylesheet);
-        const appScript = document.createElement("script");
-        appScript.type = "module";
-        appScript.src = "./assets/index.js";
-        appScript.crossOrigin = "anonymous";
-        document.body.appendChild(appScript);
-      }
-    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
