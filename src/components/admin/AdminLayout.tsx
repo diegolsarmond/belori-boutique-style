@@ -6,7 +6,8 @@ import {
   ShoppingCart, 
   Users, 
   LogOut,
-  Store
+  Store,
+  ImageIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Produtos", href: "/admin/produtos", icon: Package },
   { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
+  { name: "Slides", href: "/admin/slides", icon: ImageIcon },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
