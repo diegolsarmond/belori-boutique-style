@@ -7,7 +7,9 @@ import {
   Users, 
   LogOut,
   Store,
-  ImageIcon
+  ImageIcon,
+  Settings,
+  Building2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -18,10 +20,12 @@ interface AdminLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Produtos", href: "/admin/produtos", icon: Package },
+  { name: "Produtos", href: "/admin/produtos-local", icon: Package },
+  { name: "Fornecedores", href: "/admin/fornecedores", icon: Building2 },
   { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
   { name: "Slides", href: "/admin/slides", icon: ImageIcon },
+  { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {

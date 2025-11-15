@@ -1,0 +1,169 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Save } from "lucide-react";
+
+export default function Configuracoes() {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    footer_email: "",
+    footer_phone: "",
+    footer_address: "",
+    footer_whatsapp: "",
+  });
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .in("setting_key", [
+          "footer_email",
+          "footer_phone",
+          "footer_address",
+          "footer_whatsapp",
+        ]);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (settings) {
+      const settingsMap = settings.reduce(
+        (acc, setting) => ({
+          ...acc,
+          [setting.setting_key]: setting.setting_value,
+        }),
+        {}
+      );
+      setFormData({
+        footer_email: settingsMap["footer_email"] || "",
+        footer_phone: settingsMap["footer_phone"] || "",
+        footer_address: settingsMap["footer_address"] || "",
+        footer_whatsapp: settingsMap["footer_whatsapp"] || "",
+      });
+    }
+  }, [settings]);
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const updates = Object.entries(data).map(([key, value]) => ({
+        setting_key: key,
+        setting_value: value,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("site_settings")
+          .update({ setting_value: update.setting_value })
+          .eq("setting_key", update.setting_key);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+      toast.success("Configurações atualizadas com sucesso!");
+    },
+    onError: () => toast.error("Erro ao atualizar configurações"),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate(formData);
+  };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando configurações...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Configurações</h1>
+          <p className="text-muted-foreground">
+            Gerencie as configurações do site
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações de Contato do Rodapé</CardTitle>
+              <CardDescription>
+                Configure as informações de contato exibidas no rodapé do site
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="footer_email">Email</Label>
+                <Input
+                  id="footer_email"
+                  type="email"
+                  value={formData.footer_email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, footer_email: e.target.value })
+                  }
+                  placeholder="contato@exemplo.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="footer_phone">Telefone</Label>
+                <Input
+                  id="footer_phone"
+                  value={formData.footer_phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, footer_phone: e.target.value })
+                  }
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="footer_whatsapp">WhatsApp (apenas números)</Label>
+                <Input
+                  id="footer_whatsapp"
+                  value={formData.footer_whatsapp}
+                  onChange={(e) =>
+                    setFormData({ ...formData, footer_whatsapp: e.target.value })
+                  }
+                  placeholder="5511999999999"
+                />
+              </div>
+              <div>
+                <Label htmlFor="footer_address">Endereço</Label>
+                <Input
+                  id="footer_address"
+                  value={formData.footer_address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, footer_address: e.target.value })
+                  }
+                  placeholder="Rua Exemplo, 123 - São Paulo, SP"
+                />
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </div>
+    </AdminLayout>
+  );
+}

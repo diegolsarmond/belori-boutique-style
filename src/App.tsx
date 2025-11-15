@@ -10,6 +10,9 @@ import Sobre from "./pages/Sobre";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/admin/Dashboard";
 import Produtos from "./pages/admin/Produtos";
+import ProdutosLocal from "./pages/admin/ProdutosLocal";
+import Fornecedores from "./pages/admin/Fornecedores";
+import Configuracoes from "./pages/admin/Configuracoes";
 import Pedidos from "./pages/admin/Pedidos";
 import Clientes from "./pages/admin/Clientes";
 import Slides from "./pages/admin/Slides";
@@ -34,6 +37,9 @@ const App = () => (
           {/* Admin Routes - Protected */}
           <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
           <Route path="/admin/produtos" element={<AdminRoute><Produtos /></AdminRoute>} />
+          <Route path="/admin/produtos-local" element={<AdminRoute><ProdutosLocal /></AdminRoute>} />
+          <Route path="/admin/fornecedores" element={<AdminRoute><Fornecedores /></AdminRoute>} />
+          <Route path="/admin/configuracoes" element={<AdminRoute><Configuracoes /></AdminRoute>} />
           <Route path="/admin/pedidos" element={<AdminRoute><Pedidos /></AdminRoute>} />
           <Route path="/admin/clientes" element={<AdminRoute><Clientes /></AdminRoute>} />
           <Route path="/admin/slides" element={<AdminRoute><Slides /></AdminRoute>} />
