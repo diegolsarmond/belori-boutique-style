@@ -1,7 +1,37 @@
 import { Link } from "react-router-dom";
 import { Instagram, Facebook, Phone, Mail } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Footer = () => {
+  const { data: settings } = useQuery({
+    queryKey: ["site-settings-footer"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .in("setting_key", [
+          "footer_email",
+          "footer_phone",
+          "footer_address",
+          "footer_whatsapp",
+        ]);
+      if (error) throw error;
+      
+      return data.reduce(
+        (acc, setting) => ({
+          ...acc,
+          [setting.setting_key]: setting.setting_value,
+        }),
+        {} as Record<string, string>
+      );
+    },
+  });
+
+  const email = settings?.footer_email || "contato@belori.com.br";
+  const phone = settings?.footer_phone || "(11) 99999-9999";
+  const whatsapp = settings?.footer_whatsapp || "5511999999999";
+
   return (
     <footer className="border-t bg-secondary/30 mt-20">
       <div className="container mx-auto px-4 py-12">
@@ -73,11 +103,11 @@ export const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Phone className="h-4 w-4" />
-                <span>(11) 99999-9999</span>
+                <span>{phone}</span>
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <Mail className="h-4 w-4" />
-                <span>contato@belori.com.br</span>
+                <span>{email}</span>
               </li>
             </ul>
             <div className="flex gap-3 mt-4">
@@ -98,7 +128,7 @@ export const Footer = () => {
 
       {/* WhatsApp Floating Button */}
       <a
-        href="https://wa.me/5511999999999"
+        href={`https://wa.me/${whatsapp}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
