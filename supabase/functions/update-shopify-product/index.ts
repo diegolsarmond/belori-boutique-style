@@ -32,10 +32,12 @@ serve(async (req) => {
             vendor,
             product_type,
             tags,
-            images: images?.map((img: any) => ({
-              src: img.file_path,
-              alt: img.alt || title,
-            })) || [],
+            images: images?.map((img: any) => {
+              if (img.attachment) {
+                return { attachment: img.attachment, alt: img.alt || title };
+              }
+              return { src: img.file_path, alt: img.alt || title };
+            }) || [],
           },
         }),
       }

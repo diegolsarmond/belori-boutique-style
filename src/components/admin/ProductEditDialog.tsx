@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Upload } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { ShopifyProduct } from "@/types/shopify";
+import { supabase } from "@/integrations/supabase/client";
 
 const productSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -37,14 +40,48 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
     resolver: zodResolver(productSchema),
   });
 
+  const { data: suppliers } = useQuery({
+    queryKey: ["suppliers-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const base64 = await convertToBase64(file);
+        setImageUrls([...imageUrls, base64]);
+      } catch (err) {
+        toast.error("Erro ao processar imagem");
+      }
+    }
+  };
+
   useEffect(() => {
     if (product && open) {
       setValue("title", product.node.title);
       setValue("description", product.node.description);
-      setValue("vendor", "");
+      setValue("vendor", product.node.vendor || "");
       setValue("product_type", "");
       setValue("tags", "");
-      
+
       const existingImages = product.node.images.edges.map(edge => edge.node.url);
       setImageUrls(existingImages);
     }
@@ -67,12 +104,15 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
     setIsSubmitting(true);
     try {
       const productId = parseInt(product.node.id.split('/').pop() || '0');
-      const images = imageUrls.map(url => ({ file_path: url, alt: data.title }));
-      
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-shopify-product`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const images = imageUrls.map(url => {
+        if (url.startsWith('data:')) {
+          return { attachment: url.split(',')[1], alt: data.title };
+        }
+        return { file_path: url, alt: data.title };
+      });
+
+      const { error } = await supabase.functions.invoke('update-shopify-product', {
+        body: {
           product_id: productId,
           title: data.title,
           body: data.description || "",
@@ -80,10 +120,10 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
           product_type: data.product_type || "",
           tags: data.tags || "",
           images,
-        }),
+        },
       });
 
-      if (!response.ok) throw new Error("Erro ao atualizar produto");
+      if (error) throw error;
 
       toast.success("Produto atualizado com sucesso!");
       onSuccess();
@@ -100,7 +140,7 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Produto</DialogTitle>
         </DialogHeader>
@@ -119,7 +159,18 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="vendor">Fornecedor</Label>
-              <Input id="vendor" {...register("vendor")} />
+              <Select onValueChange={(value) => setValue("vendor", value)} defaultValue={product.node.vendor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers?.map((supplier) => (
+                    <SelectItem key={supplier.name} value={supplier.name}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -135,16 +186,30 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
 
           <div>
             <Label>Imagens (URLs)</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="URL da imagem"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
-              />
-              <Button type="button" onClick={addImageUrl} size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2 mb-2">
+              <div className="flex-1 flex gap-2">
+                <Input
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="URL da imagem"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
+                />
+                <Button type="button" onClick={addImageUrl} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               {imageUrls.map((url, index) => (
