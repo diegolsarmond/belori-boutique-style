@@ -1,1 +1,10 @@
 project_id = "mvsoifhykosbvajpcmdl"
+
+[functions.create-shopify-product]
+verify_jwt = false
+
+[functions.update-shopify-product]
+verify_jwt = false
+
+[functions.delete-shopify-product]
+verify_jwt = false
