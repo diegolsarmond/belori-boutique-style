@@ -87,6 +87,8 @@ export function ProductDialog({ open, onOpenChange, onSuccess }: ProductDialogPr
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
     try {
+      // Integração removida
+      /*
       const images = imageUrls.map(url => {
         if (url.startsWith('data:')) {
           return { attachment: url.split(',')[1], alt: data.title };
@@ -111,8 +113,9 @@ export function ProductDialog({ open, onOpenChange, onSuccess }: ProductDialogPr
       });
 
       if (error) throw error;
+      */
 
-      toast.success("Produto criado com sucesso!");
+      toast.info("Integração com Shopify removida. Produto não criado.");
       reset();
       setImageUrls([]);
       onSuccess();

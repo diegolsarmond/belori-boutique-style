@@ -50,19 +50,20 @@ export default function Produtos() {
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
-    
+
     setIsDeleting(true);
     try {
-      const productId = parseInt(deleteProductId.split('/').pop() || '0');
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-shopify-product`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: productId }),
-      });
+      // Integração removida
+      // const productId = parseInt(deleteProductId.split('/').pop() || '0');
+      // const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-shopify-product`, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ product_id: productId }),
+      // });
 
-      if (!response.ok) throw new Error("Erro ao deletar produto");
+      // if (!response.ok) throw new Error("Erro ao deletar produto");
 
-      toast.success("Produto deletado com sucesso!");
+      toast.info("Integração com Shopify removida. Produto não deletado.");
       refetch();
     } catch (error) {
       console.error("Erro ao deletar produto:", error);

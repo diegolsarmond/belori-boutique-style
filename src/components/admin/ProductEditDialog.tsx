@@ -103,6 +103,8 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
 
     setIsSubmitting(true);
     try {
+      // Integração removida
+      /*
       const productId = parseInt(product.node.id.split('/').pop() || '0');
       const images = imageUrls.map(url => {
         if (url.startsWith('data:')) {
@@ -124,8 +126,9 @@ export function ProductEditDialog({ product, open, onOpenChange, onSuccess }: Pr
       });
 
       if (error) throw error;
+      */
 
-      toast.success("Produto atualizado com sucesso!");
+      toast.info("Integração com Shopify removida. Produto não atualizado.");
       onSuccess();
       onOpenChange(false);
     } catch (error) {
