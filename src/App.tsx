@@ -33,17 +33,17 @@ const App = () => (
           <Route path="/produto/:handle" element={<Produto />} />
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/auth" element={<Auth />} />
-          
+
           {/* Admin Routes - Protected */}
           <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
           <Route path="/admin/produtos" element={<AdminRoute><Produtos /></AdminRoute>} />
-          <Route path="/admin/produtos-local" element={<AdminRoute><ProdutosLocal /></AdminRoute>} />
+          <Route path="/admin/produtos" element={<AdminRoute><ProdutosLocal /></AdminRoute>} />
           <Route path="/admin/fornecedores" element={<AdminRoute><Fornecedores /></AdminRoute>} />
           <Route path="/admin/configuracoes" element={<AdminRoute><Configuracoes /></AdminRoute>} />
           <Route path="/admin/pedidos" element={<AdminRoute><Pedidos /></AdminRoute>} />
           <Route path="/admin/clientes" element={<AdminRoute><Clientes /></AdminRoute>} />
           <Route path="/admin/slides" element={<AdminRoute><Slides /></AdminRoute>} />
-          
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
