@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+// Force rebuild
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -10,7 +11,7 @@ import {
   ImageIcon,
   Settings,
   Building2,
-  UserCog
+  User
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -25,7 +26,7 @@ const navigation = [
   { name: "Fornecedores", href: "/admin/fornecedores", icon: Building2 },
   { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
-  { name: "Usuários", href: "/admin/usuarios", icon: UserCog },
+  { name: "Usuários", href: "/admin/usuarios", icon: User },
   { name: "Slides", href: "/admin/slides", icon: ImageIcon },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];
@@ -50,7 +51,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <Link to="/" className="flex items-center space-x-2">
               <h1 className="text-xl font-bold">
                 <span className="text-foreground">Bel</span>
-                <span className="text-accent">ori</span>
+                <span className="text-accent">ori Admin</span>
               </h1>
             </Link>
           </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+// Force rebuild
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -6,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Edit, Trash2, UserCog } from "lucide-react";
+import { Search, Edit, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +28,8 @@ export default function Usuarios() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const [selectedRole, setSelectedRole] = useState<"admin" | "user">("user");
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "user" as "admin" | "user" });
 
     const queryClient = useQueryClient();
 
@@ -88,8 +91,13 @@ export default function Usuarios() {
             toast.success("Permissão atualizada com sucesso!");
             setIsDialogOpen(false);
         },
-        onError: () => {
-            toast.error("Erro ao atualizar permissão");
+        onError: (error: any) => {
+            console.error("Erro ao atualizar role:", error);
+            if (error.code === '42501') {
+                toast.error("Erro de permissão: Você não tem autorização para alterar funções de usuário.");
+            } else {
+                toast.error("Erro ao atualizar permissão");
+            }
         }
     });
 
@@ -110,8 +118,56 @@ export default function Usuarios() {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
             toast.success("Usuário removido com sucesso!");
         },
-        onError: () => {
-            toast.error("Erro ao remover usuário");
+        onError: (error: any) => {
+            console.error("Erro ao remover usuário:", error);
+            if (error.code === '42501') {
+                toast.error("Erro de permissão: Você não tem autorização para remover usuários.");
+            } else {
+                toast.error("Erro ao remover usuário");
+            }
+        }
+    });
+
+    const createUserMutation = useMutation({
+        mutationFn: async (userData: typeof newUser) => {
+            const { data, error } = await supabase.auth.signUp({
+                email: userData.email,
+                password: userData.password,
+                options: {
+                    data: {
+                        full_name: userData.name,
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                if (userData.role === 'admin') {
+                    const { error: roleError } = await supabase
+                        .from('user_roles')
+                        .insert([{ user_id: data.user.id, role: 'admin' }]);
+
+                    if (roleError) {
+                        console.error("Erro ao definir role de admin:", roleError);
+                        throw roleError;
+                    }
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            toast.success("Usuário criado com sucesso! (Verifique se você não foi deslogado)");
+            setIsCreateDialogOpen(false);
+            setNewUser({ name: "", email: "", password: "", role: "user" });
+        },
+        onError: (error: any) => {
+            console.error("Erro ao criar usuário:", error);
+            if (error.code === '42501') {
+                toast.error("Usuário criado, mas houve erro de permissão ao definir como admin.");
+            } else {
+                toast.error("Erro ao criar usuário: " + error.message);
+            }
         }
     });
 
@@ -140,6 +196,10 @@ export default function Usuarios() {
                         <h1 className="text-3xl font-bold mb-2">Usuários</h1>
                         <p className="text-muted-foreground">Gerencie os usuários e suas permissões</p>
                     </div>
+                    <Button onClick={() => setIsCreateDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Novo Usuário
+                    </Button>
                 </div>
 
                 <Card>
@@ -177,8 +237,8 @@ export default function Usuarios() {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === 'admin'
-                                                        ? 'bg-primary/10 text-primary'
-                                                        : 'bg-secondary text-secondary-foreground'
+                                                    ? 'bg-primary/10 text-primary'
+                                                    : 'bg-secondary text-secondary-foreground'
                                                     }`}>
                                                     {user.role === 'admin' ? 'Administrador' : 'Usuário'}
                                                 </span>
@@ -220,6 +280,9 @@ export default function Usuarios() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Editar Permissões</DialogTitle>
+                            <DialogDescription>
+                                Altere o nível de acesso do usuário selecionado.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
@@ -250,6 +313,68 @@ export default function Usuarios() {
                                 </Button>
                                 <Button onClick={handleSaveRole}>
                                     Salvar
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Novo Usuário</DialogTitle>
+                            <DialogDescription>
+                                Preencha os dados para criar um novo usuário no sistema.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Nome</Label>
+                                <Input
+                                    value={newUser.name}
+                                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                    placeholder="Nome completo"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Email</Label>
+                                <Input
+                                    value={newUser.email}
+                                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                    placeholder="email@exemplo.com"
+                                    type="email"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Senha</Label>
+                                <Input
+                                    value={newUser.password}
+                                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                    placeholder="******"
+                                    type="password"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Permissão</Label>
+                                <Select
+                                    value={newUser.role}
+                                    onValueChange={(value: "admin" | "user") => setNewUser({ ...newUser, role: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="user">Usuário</SelectItem>
+                                        <SelectItem value="admin">Administrador</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-4">
+                                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button onClick={() => createUserMutation.mutate(newUser)} disabled={createUserMutation.isPending}>
+                                    {createUserMutation.isPending ? "Criando..." : "Criar Usuário"}
                                 </Button>
                             </div>
                         </div>
