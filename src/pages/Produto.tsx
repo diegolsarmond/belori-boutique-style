@@ -4,23 +4,13 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ShopifyProduct } from "@/types/shopify";
+import { Product } from "@/types/product";
 import { useCartStore } from "@/stores/cartStore";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
-interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  stock_quantity: number;
-  image_url: string | null;
-  is_active: boolean;
-}
-
 const Produto = () => {
-  const { handle } = useParams<{ handle: string }>(); // handle is actually the ID now
+  const { handle } = useParams<{ handle: string }>();
   const addItem = useCartStore(state => state.addItem);
 
   const { data: productData, isLoading, error } = useQuery({
@@ -63,73 +53,20 @@ const Produto = () => {
     );
   }
 
-  // Adapter to match ShopifyProduct structure for the CartStore
-  const shopifyProductAdapter: ShopifyProduct = {
-    node: {
-      id: productData.id,
-      title: productData.name,
-      description: productData.description || "",
-      handle: productData.id,
-      priceRange: {
-        minVariantPrice: {
-          amount: productData.price.toString(),
-          currencyCode: "BRL"
-        }
-      },
-      images: {
-        edges: productData.image_url ? [{
-          node: {
-            url: productData.image_url,
-            altText: productData.name
-          }
-        }] : []
-      },
-      variants: {
-        edges: [{
-          node: {
-            id: productData.id, // Use product ID as variant ID for simple products
-            title: "Padrão",
-            price: {
-              amount: productData.price.toString(),
-              currencyCode: "BRL"
-            },
-            availableForSale: productData.stock_quantity > 0,
-            selectedOptions: [{
-              name: "Title",
-              value: "Padrão"
-            }]
-          }
-        }]
-      },
-      options: [{
-        name: "Title",
-        values: ["Padrão"]
-      }]
-    }
-  };
-
   const handleAddToCart = () => {
     if (productData.stock_quantity <= 0) {
       toast.error("Produto indisponível no estoque");
       return;
     }
 
-    const cartItem = {
-      product: shopifyProductAdapter,
-      variantId: productData.id,
-      variantTitle: "Padrão",
-      price: {
-        amount: productData.price.toString(),
-        currencyCode: "BRL"
-      },
+    addItem({
+      productId: productData.id,
+      name: productData.name,
+      price: productData.price,
       quantity: 1,
-      selectedOptions: [{
-        name: "Title",
-        value: "Padrão"
-      }]
-    };
+      imageUrl: productData.image_url
+    });
 
-    addItem(cartItem);
     toast.success("Produto adicionado ao carrinho!", {
       position: "top-center"
     });
