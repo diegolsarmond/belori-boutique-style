@@ -5,6 +5,10 @@ export interface Product {
   price: number;
   stock_quantity: number;
   image_url: string | null;
+  additional_images: string[] | null;
+  category: string | null;
+  colors: string[] | null;
+  sizes: string[] | null;
   is_active: boolean;
   supplier_id: string | null;
   created_at: string;

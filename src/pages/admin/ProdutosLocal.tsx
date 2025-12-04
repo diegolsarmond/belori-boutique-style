@@ -46,6 +46,10 @@ interface Product {
   supplier_id: string | null;
   is_active: boolean;
   image_url: string | null;
+  additional_images: string[] | null;
+  category: string | null;
+  colors: string[] | null;
+  sizes: string[] | null;
   suppliers?: { name: string } | null;
 }
 
@@ -60,6 +64,7 @@ export default function ProdutosLocal() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
@@ -69,6 +74,9 @@ export default function ProdutosLocal() {
     price: "",
     stock_quantity: "",
     supplier_id: "",
+    category: "",
+    colors: "",
+    sizes: "",
     is_active: true,
   });
 
@@ -80,7 +88,7 @@ export default function ProdutosLocal() {
         .select("*, suppliers(name)")
         .order("name");
       if (error) throw error;
-      return data as Product[];
+      return data as unknown as Product[];
     },
   });
 
@@ -121,6 +129,10 @@ export default function ProdutosLocal() {
       supplier_id: string | null;
       is_active: boolean;
       image_url?: string;
+      additional_images?: string[];
+      category?: string | null;
+      colors?: string[] | null;
+      sizes?: string[] | null;
     }) => {
       const { error } = await supabase.from("products").insert(data);
       if (error) throw error;
@@ -147,6 +159,10 @@ export default function ProdutosLocal() {
         supplier_id: string | null;
         is_active: boolean;
         image_url?: string;
+        additional_images?: string[];
+        category?: string | null;
+        colors?: string[] | null;
+        sizes?: string[] | null;
       };
     }) => {
       const { error } = await supabase.from("products").update(data).eq("id", id);
@@ -182,6 +198,9 @@ export default function ProdutosLocal() {
         price: product.price.toString(),
         stock_quantity: product.stock_quantity.toString(),
         supplier_id: product.supplier_id || "",
+        category: product.category || "",
+        colors: product.colors?.join(", ") || "",
+        sizes: product.sizes?.join(", ") || "",
         is_active: product.is_active,
       });
     }
@@ -198,8 +217,12 @@ export default function ProdutosLocal() {
       price: "",
       stock_quantity: "",
       supplier_id: "",
+      category: "",
+      colors: "",
+      sizes: "",
       is_active: true,
     });
+    setAdditionalImageFiles([]);
   };
 
   const handleSubmit = async () => {
@@ -219,10 +242,26 @@ export default function ProdutosLocal() {
     try {
       setIsUploading(true);
       let imageUrl = selectedProduct?.image_url;
+      let additionalImages = selectedProduct?.additional_images || [];
 
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       }
+
+      if (additionalImageFiles.length > 0) {
+        const newImages = await Promise.all(
+          additionalImageFiles.map((file) => uploadImage(file))
+        );
+        additionalImages = [...additionalImages, ...newImages];
+      }
+
+      const colorsArray = formData.colors
+        ? formData.colors.split(",").map((c) => c.trim()).filter((c) => c !== "")
+        : null;
+
+      const sizesArray = formData.sizes
+        ? formData.sizes.split(",").map((s) => s.trim()).filter((s) => s !== "")
+        : null;
 
       const data = {
         name: formData.name,
@@ -230,8 +269,12 @@ export default function ProdutosLocal() {
         price: parseFloat(formData.price),
         stock_quantity: parseInt(formData.stock_quantity),
         supplier_id: formData.supplier_id || null,
+        category: formData.category || null,
+        colors: colorsArray,
+        sizes: sizesArray,
         is_active: formData.is_active,
         ...(imageUrl && { image_url: imageUrl }),
+        additional_images: additionalImages,
       };
 
       if (selectedProduct) {
@@ -240,7 +283,8 @@ export default function ProdutosLocal() {
         createMutation.mutate(data);
       }
     } catch (error) {
-      toast.error("Erro ao fazer upload da imagem");
+      console.error(error);
+      toast.error("Erro ao salvar produto");
     } finally {
       setIsUploading(false);
     }
@@ -437,7 +481,7 @@ export default function ProdutosLocal() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="image">Imagem do Produto</Label>
+              <Label htmlFor="image">Imagem Principal</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="image"
@@ -455,6 +499,76 @@ export default function ProdutosLocal() {
                     className="w-24 h-24 object-cover rounded"
                   />
                 </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="additional_images">Imagens Adicionais</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="additional_images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setAdditionalImageFiles(Array.from(e.target.files || []))}
+                />
+                <Upload className="h-5 w-5 text-muted-foreground" />
+              </div>
+              {selectedProduct?.additional_images && selectedProduct.additional_images.length > 0 && (
+                <div className="mt-2 flex gap-2 overflow-x-auto">
+                  {selectedProduct.additional_images.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img}
+                      alt={`Preview ${index}`}
+                      className="w-24 h-24 object-cover rounded"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">Categoria</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="roupas">Roupas</SelectItem>
+                    <SelectItem value="sapatos">Sapatos</SelectItem>
+                    <SelectItem value="acessorios">Acessórios</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(formData.category === 'roupas' || formData.category === 'sapatos') && (
+                <>
+                  <div>
+                    <Label htmlFor="colors">Cores (separadas por vírgula)</Label>
+                    <Input
+                      id="colors"
+                      value={formData.colors}
+                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                      placeholder="Ex: Azul, Vermelho"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="sizes">Tamanhos (separados por vírgula)</Label>
+                    <Input
+                      id="sizes"
+                      value={formData.sizes}
+                      onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                      placeholder="Ex: P, M, G, 38, 40"
+                    />
+                  </div>
+                </>
               )}
             </div>
             <div className="flex items-center space-x-2">

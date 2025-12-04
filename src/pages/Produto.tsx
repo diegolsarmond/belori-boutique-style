@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 const Produto = () => {
   const { handle } = useParams<{ handle: string }>();
   const addItem = useCartStore(state => state.addItem);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: productData, isLoading, error } = useQuery({
     queryKey: ['product', handle],
@@ -25,9 +27,15 @@ const Produto = () => {
         .single();
 
       if (error) throw error;
-      return data as Product;
+      return data as unknown as Product;
     }
   });
+
+  useEffect(() => {
+    if (productData?.image_url) {
+      setSelectedImage(productData.image_url);
+    }
+  }, [productData]);
 
   if (isLoading) {
     return (
@@ -80,9 +88,9 @@ const Produto = () => {
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4">
               <div className="aspect-square bg-secondary/20 rounded-lg overflow-hidden">
-                {productData.image_url ? (
+                {selectedImage ? (
                   <img
-                    src={productData.image_url}
+                    src={selectedImage}
                     alt={productData.name}
                     className="w-full h-full object-cover"
                   />
@@ -92,15 +100,79 @@ const Produto = () => {
                   </div>
                 )}
               </div>
+              {productData.additional_images && productData.additional_images.length > 0 && (
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  <button
+                    onClick={() => setSelectedImage(productData.image_url)}
+                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${selectedImage === productData.image_url
+                        ? "border-primary"
+                        : "border-transparent"
+                      }`}
+                  >
+                    <img
+                      src={productData.image_url || ""}
+                      alt="Principal"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                  {productData.additional_images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(img)}
+                      className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${selectedImage === img
+                          ? "border-primary"
+                          : "border-transparent"
+                        }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Adicional ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-2">{productData.name}</h1>
+                {productData.category && (
+                  <span className="inline-block bg-secondary px-3 py-1 rounded-full text-sm font-medium mb-2 capitalize">
+                    {productData.category}
+                  </span>
+                )}
                 <p className="text-3xl font-bold text-accent">
                   {Number(productData.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
               </div>
+
+              {productData.colors && productData.colors.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Cores:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {productData.colors.map((color, index) => (
+                      <span key={index} className="px-3 py-1 border rounded-md text-sm">
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {productData.sizes && productData.sizes.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Tamanhos:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {productData.sizes.map((size, index) => (
+                      <span key={index} className="px-3 py-1 border rounded-md text-sm">
+                        {size}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="prose prose-sm max-w-none">
                 <p className="text-muted-foreground">{productData.description}</p>
