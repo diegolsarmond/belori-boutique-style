@@ -28,8 +28,10 @@ export default function Dashboard() {
   const { data: productsData } = useQuery({
     queryKey: ['admin-products-count'],
     queryFn: async () => {
-      // Retorna contagem estimada de produtos do Shopify
-      return 10; // Você tem 10 produtos cadastrados
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+      return count || 0;
     }
   });
 
