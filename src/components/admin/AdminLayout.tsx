@@ -9,7 +9,8 @@ import {
   Store,
   ImageIcon,
   Settings,
-  Building2
+  Building2,
+  UserCog
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Fornecedores", href: "/admin/fornecedores", icon: Building2 },
   { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingCart },
   { name: "Clientes", href: "/admin/clientes", icon: Users },
+  { name: "Usuários", href: "/admin/usuarios", icon: UserCog },
   { name: "Slides", href: "/admin/slides", icon: ImageIcon },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];

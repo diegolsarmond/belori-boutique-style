@@ -87,7 +87,7 @@ export const useCartStore = create<CartStore>()(
       }
     }),
     {
-      name: 'shopify-cart',
+      name: 'belori-cart-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         items: state.items,

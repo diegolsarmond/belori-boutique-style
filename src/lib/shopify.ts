@@ -6,7 +6,7 @@ const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/${
 const SHOPIFY_STOREFRONT_TOKEN = 'f9261efbff3cc511f0bbc740f924ea5a';
 
 export async function storefrontApiRequest(query: string, variables: any = {}) {
-  console.warn("Integração com Shopify removida. Retornando dados vazios.");
+  console.info("Integração com Shopify removida. Retornando dados vazios.");
   return {
     data: {
       products: { edges: [] },
@@ -76,7 +76,7 @@ export const STOREFRONT_QUERY = `
 `;
 
 export async function createStorefrontCheckout(items: any[]): Promise<string> {
-  console.warn("Integração com Shopify removida. Checkout desativado.");
+  console.info("Integração com Shopify removida. Checkout desativado.");
   toast.error("Checkout desativado (Integração Shopify removida)");
   return "#";
 }

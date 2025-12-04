@@ -3,69 +3,39 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { storefrontApiRequest } from "@/lib/shopify";
+import { supabase } from "@/integrations/supabase/client";
 import { ShopifyProduct } from "@/types/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
 
-const PRODUCT_QUERY = `
-  query GetProduct($handle: String!) {
-    productByHandle(handle: $handle) {
-      id
-      title
-      description
-      handle
-      priceRange {
-        minVariantPrice {
-          amount
-          currencyCode
-        }
-      }
-      images(first: 5) {
-        edges {
-          node {
-            url
-            altText
-          }
-        }
-      }
-      variants(first: 10) {
-        edges {
-          node {
-            id
-            title
-            price {
-              amount
-              currencyCode
-            }
-            availableForSale
-            selectedOptions {
-              name
-              value
-            }
-          }
-        }
-      }
-      options {
-        name
-        values
-      }
-    }
-  }
-`;
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stock_quantity: number;
+  image_url: string | null;
+  is_active: boolean;
+}
 
 const Produto = () => {
-  const { handle } = useParams<{ handle: string }>();
+  const { handle } = useParams<{ handle: string }>(); // handle is actually the ID now
   const addItem = useCartStore(state => state.addItem);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
 
-  const { data, isLoading, error } = useQuery({
+  const { data: productData, isLoading, error } = useQuery({
     queryKey: ['product', handle],
     queryFn: async () => {
-      const result = await storefrontApiRequest(PRODUCT_QUERY, { handle });
-      return result?.data?.productByHandle;
+      if (!handle) throw new Error("Product ID is required");
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", handle)
+        .single();
+
+      if (error) throw error;
+      return data as Product;
     }
   });
 
@@ -81,7 +51,7 @@ const Produto = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !productData) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -93,24 +63,72 @@ const Produto = () => {
     );
   }
 
-  const product: ShopifyProduct = {
-    node: data
+  // Adapter to match ShopifyProduct structure for the CartStore
+  const shopifyProductAdapter: ShopifyProduct = {
+    node: {
+      id: productData.id,
+      title: productData.name,
+      description: productData.description || "",
+      handle: productData.id,
+      priceRange: {
+        minVariantPrice: {
+          amount: productData.price.toString(),
+          currencyCode: "BRL"
+        }
+      },
+      images: {
+        edges: productData.image_url ? [{
+          node: {
+            url: productData.image_url,
+            altText: productData.name
+          }
+        }] : []
+      },
+      variants: {
+        edges: [{
+          node: {
+            id: productData.id, // Use product ID as variant ID for simple products
+            title: "Padrão",
+            price: {
+              amount: productData.price.toString(),
+              currencyCode: "BRL"
+            },
+            availableForSale: productData.stock_quantity > 0,
+            selectedOptions: [{
+              name: "Title",
+              value: "Padrão"
+            }]
+          }
+        }]
+      },
+      options: [{
+        name: "Title",
+        values: ["Padrão"]
+      }]
+    }
   };
 
-  const selectedVariant = product.node.variants.edges[selectedVariantIndex]?.node;
-
   const handleAddToCart = () => {
-    if (!selectedVariant) return;
+    if (productData.stock_quantity <= 0) {
+      toast.error("Produto indisponível no estoque");
+      return;
+    }
 
     const cartItem = {
-      product,
-      variantId: selectedVariant.id,
-      variantTitle: selectedVariant.title,
-      price: selectedVariant.price,
+      product: shopifyProductAdapter,
+      variantId: productData.id,
+      variantTitle: "Padrão",
+      price: {
+        amount: productData.price.toString(),
+        currencyCode: "BRL"
+      },
       quantity: 1,
-      selectedOptions: selectedVariant.selectedOptions || []
+      selectedOptions: [{
+        name: "Title",
+        value: "Padrão"
+      }]
     };
-    
+
     addItem(cartItem);
     toast.success("Produto adicionado ao carrinho!", {
       position: "top-center"
@@ -125,69 +143,40 @@ const Produto = () => {
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4">
               <div className="aspect-square bg-secondary/20 rounded-lg overflow-hidden">
-                <img
-                  src={product.node.images.edges[0]?.node?.url || '/placeholder.svg'}
-                  alt={product.node.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {product.node.images.edges.slice(1, 5).map((image, index) => (
-                  <div key={index} className="aspect-square bg-secondary/20 rounded-md overflow-hidden">
-                    <img
-                      src={image.node.url}
-                      alt={`${product.node.title} ${index + 2}`}
-                      className="w-full h-full object-cover"
-                    />
+                {productData.image_url ? (
+                  <img
+                    src={productData.image_url}
+                    alt={productData.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-muted-foreground">Sem imagem</span>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             <div className="space-y-6">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{product.node.title}</h1>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">{productData.name}</h1>
                 <p className="text-3xl font-bold text-accent">
-                  {selectedVariant
-                    ? Number(selectedVariant.price.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                    : null}
+                  {Number(productData.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
               </div>
 
               <div className="prose prose-sm max-w-none">
-                <p className="text-muted-foreground">{product.node.description}</p>
+                <p className="text-muted-foreground">{productData.description}</p>
               </div>
 
-              {product.node.options.map((option, optionIndex) => (
-                <div key={option.name}>
-                  <label className="block text-sm font-medium mb-2">{option.name}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {option.values.map((value, valueIndex) => {
-                      const variantIndex = product.node.variants.edges.findIndex(
-                        v => v.node.selectedOptions.some(o => o.value === value)
-                      );
-                      return (
-                        <Button
-                          key={value}
-                          variant={selectedVariantIndex === variantIndex ? "default" : "outline"}
-                          onClick={() => setSelectedVariantIndex(variantIndex)}
-                        >
-                          {value}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full"
                 onClick={handleAddToCart}
-                disabled={!selectedVariant?.availableForSale}
+                disabled={productData.stock_quantity <= 0}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                {selectedVariant?.availableForSale ? 'Adicionar ao Carrinho' : 'Indisponível'}
+                {productData.stock_quantity > 0 ? 'Adicionar ao Carrinho' : 'Indisponível'}
               </Button>
 
               <div className="border-t pt-6 space-y-2 text-sm">

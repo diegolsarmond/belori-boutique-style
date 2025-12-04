@@ -17,7 +17,10 @@ interface Product {
   is_active: boolean;
 }
 
+import { useNavigate } from "react-router-dom";
+
 const Index = () => {
+  const navigate = useNavigate();
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-storefront'],
     queryFn: async () => {
@@ -28,7 +31,7 @@ const Index = () => {
         .gt("stock_quantity", 0)
         .order("created_at", { ascending: false })
         .limit(12);
-      
+
       if (error) throw error;
       return data as Product[];
     }
@@ -40,7 +43,7 @@ const Index = () => {
       <main className="flex-1">
         <Hero />
         <Categories />
-        
+
         <section className="container mx-auto px-4 py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Produtos em Destaque</h2>
@@ -73,6 +76,7 @@ const Index = () => {
               {products.map((product) => (
                 <div
                   key={product.id}
+                  onClick={() => navigate(`/produto/${product.id}`)}
                   className="group cursor-pointer bg-card rounded-lg overflow-hidden border hover:shadow-lg transition-all"
                 >
                   <div className="aspect-square bg-secondary/20 overflow-hidden">
