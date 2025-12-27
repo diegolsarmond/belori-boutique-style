@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -23,9 +22,10 @@ interface CustomerInfo {
   city?: string;
   state?: string;
   postalCode?: string;
+  docNumber?: string; // CPF or CNPJ
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -79,6 +79,10 @@ serve(async (req: Request) => {
       throw new Error('Número do pedido não fornecido');
     }
 
+    const payerNameParts = customer.name.trim().split(' ');
+    const payerFirstName = payerNameParts[0];
+    const payerLastName = payerNameParts.length > 1 ? payerNameParts.slice(1).join(' ') : ' ';
+
     // Build Mercado Pago preference
     const preference = {
       items: items.map(item => ({
@@ -90,17 +94,21 @@ serve(async (req: Request) => {
         picture_url: item.imageUrl || undefined,
       })),
       payer: {
-        name: customer.name.split(' ')[0],
-        surname: customer.name.split(' ').slice(1).join(' ') || '',
+        name: payerFirstName,
+        surname: payerLastName,
         email: customer.email,
         phone: customer.phone ? {
           area_code: customer.phone.replace(/\D/g, '').substring(0, 2),
           number: customer.phone.replace(/\D/g, '').substring(2),
         } : undefined,
         address: customer.address ? {
-          street_name: customer.address,
+          street_name: `${customer.address}, ${customer.city || ''} - ${customer.state || ''}`,
           zip_code: customer.postalCode?.replace(/\D/g, '') || '',
         } : undefined,
+        identification: customer.docNumber ? {
+          type: customer.docNumber.length > 11 ? 'CNPJ' : 'CPF',
+          number: customer.docNumber.replace(/\D/g, '')
+        } : undefined
       },
       back_urls: {
         success: backUrls?.success || `${req.headers.get('origin')}/checkout/sucesso?order=${orderNumber}`,
@@ -153,3 +161,4 @@ serve(async (req: Request) => {
     );
   }
 });
+

@@ -29,6 +29,7 @@ export default function Checkout() {
     name: "",
     email: "",
     phone: "",
+    docNumber: "", // CPF or CNPJ
     postalCode: "",
     street: "",
     number: "",
@@ -75,6 +76,25 @@ export default function Checkout() {
 
     setCustomerData(prev => ({ ...prev, phone: formattedPhone }));
   };
+
+  const handleDocNumberChange = (value: string) => {
+    const doc = value.replace(/\D/g, "");
+    let formattedDoc = doc;
+
+    if (doc.length > 11) {
+      // CNPJ: 00.000.000/0000-00
+      formattedDoc = doc.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, "$1.$2.$3/$4-$5");
+    } else if (doc.length > 9) {
+      // CPF: 000.000.000-00
+      formattedDoc = doc.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, "$1.$2.$3-$4");
+    } else if (doc.length > 6) {
+      formattedDoc = doc.replace(/^(\d{3})(\d{3})(\d{0,3})/, "$1.$2.$3");
+    } else if (doc.length > 3) {
+      formattedDoc = doc.replace(/^(\d{3})(\d{0,3})/, "$1.$2");
+    }
+
+    setCustomerData(prev => ({ ...prev, docNumber: formattedDoc }));
+  }
 
   const calculateShipping = (cep: string) => {
     // Simulação de cálculo de frete
@@ -229,7 +249,7 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerData.name || !customerData.email || !customerData.phone || !customerData.postalCode || !customerData.street || !customerData.number || !customerData.city || !customerData.state) {
+    if (!customerData.name || !customerData.email || !customerData.phone || !customerData.docNumber || !customerData.postalCode || !customerData.street || !customerData.number || !customerData.city || !customerData.state) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
@@ -353,6 +373,18 @@ export default function Checkout() {
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       required
                       placeholder="seu@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="docNumber">CPF / CNPJ *</Label>
+                    <Input
+                      id="docNumber"
+                      value={customerData.docNumber}
+                      onChange={(e) => handleDocNumberChange(e.target.value)}
+                      required
+                      placeholder="000.000.000-00"
+                      maxLength={18}
                     />
                   </div>
 
