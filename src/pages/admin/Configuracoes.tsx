@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, CreditCard, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, CreditCard, CheckCircle } from "lucide-react";
 
 export default function Configuracoes() {
   const queryClient = useQueryClient();
@@ -20,13 +20,7 @@ export default function Configuracoes() {
     footer_whatsapp: "",
   });
 
-  const [mpStatus, setMpStatus] = useState<'checking' | 'configured' | 'not_configured'>('checking');
 
-  const [mpSettings, setMpSettings] = useState({
-    access_token: "",
-    public_key: "",
-    is_active: false,
-  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["site-settings"],
@@ -45,32 +39,7 @@ export default function Configuracoes() {
     },
   });
 
-  const { data: paymentSettings } = useQuery({
-    queryKey: ["payment-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("BeloriBH_payment_settings" as any)
-        .select("*")
-        .eq("provider", "mercadopago")
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
 
-  useEffect(() => {
-    if (paymentSettings) {
-      const settings = paymentSettings as any;
-      setMpSettings({
-        access_token: settings.access_token || "",
-        public_key: settings.public_key || "",
-        is_active: settings.is_active || false,
-      });
-      setMpStatus(settings.is_active ? 'configured' : 'not_configured');
-    } else {
-      setMpStatus('not_configured');
-    }
-  }, [paymentSettings]);
 
   useEffect(() => {
     if (settings) {
@@ -111,25 +80,7 @@ export default function Configuracoes() {
     onError: () => toast.error("Erro ao atualizar configurações"),
   });
 
-  const updateMpSettingsMutation = useMutation({
-    mutationFn: async (data: typeof mpSettings) => {
-      const { error } = await supabase
-        .from("BeloriBH_payment_settings" as any)
-        .upsert({
-          provider: 'mercadopago',
-          access_token: data.access_token,
-          public_key: data.public_key,
-          is_active: data.is_active,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'provider' });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payment-settings"] });
-      toast.success("Configurações do Mercado Pago atualizadas!");
-    },
-    onError: () => toast.error("Erro ao salvar configurações do Mercado Pago"),
-  });
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,69 +120,48 @@ export default function Configuracoes() {
                   </CardDescription>
                 </div>
               </div>
-              {mpStatus === 'configured' ? (
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Ativo
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  Inativo
-                </Badge>
-              )}
+              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Configurado via .env
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); updateMpSettingsMutation.mutate(mpSettings); }} className="space-y-4">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Configure as credenciais do Mercado Pago para processar pagamentos.
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
+                  ✓ Credenciais configuradas via variáveis de ambiente
                 </p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  As credenciais do Mercado Pago estão sendo lidas do arquivo <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">.env</code>:
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-blue-600 dark:text-blue-400">
+                  <li>• <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">MERCADO_PAGO_PUBLIC_KEY</code></li>
+                  <li>• <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">MERCADO_PAGO_ACCESS_TOKEN</code></li>
+                </ul>
+              </div>
 
+              <div className="grid gap-3">
                 <div>
-                  <Label htmlFor="mp_access_token">Access Token (Produção)</Label>
-                  <Input
-                    id="mp_access_token"
-                    type="password"
-                    value={mpSettings.access_token}
-                    onChange={(e) => setMpSettings({ ...mpSettings, access_token: e.target.value })}
-                    placeholder="APP_USR-..."
-                  />
+                  <Label className="text-muted-foreground">Public Key</Label>
+                  <div className="mt-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+                    {import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY ?
+                      `${import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY.substring(0, 20)}...` :
+                      'Não configurado'
+                    }
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Access Token</Label>
+                  <div className="mt-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+                    ••••••••••••••••••••
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Token de acesso de produção do Mercado Pago.
+                    Token ocultado por segurança
                   </p>
                 </div>
-
-                <div>
-                  <Label htmlFor="mp_public_key">Public Key</Label>
-                  <Input
-                    id="mp_public_key"
-                    value={mpSettings.public_key}
-                    onChange={(e) => setMpSettings({ ...mpSettings, public_key: e.target.value })}
-                    placeholder="APP_USR-..."
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="mp_active"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    checked={mpSettings.is_active}
-                    onChange={(e) => setMpSettings({ ...mpSettings, is_active: e.target.checked })}
-                  />
-                  <Label htmlFor="mp_active">Ativar integração</Label>
-                </div>
               </div>
-
-              <div className="flex justify-end pt-2">
-                <Button type="submit" disabled={updateMpSettingsMutation.isPending}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {updateMpSettingsMutation.isPending ? "Salvando..." : "Salvar Configuração MP"}
-                </Button>
-              </div>
-            </form>
+            </div>
           </CardContent>
         </Card>
 
