@@ -92,7 +92,7 @@ serve(async (req: Request) => {
     // Create or find customer
     let customerId: string | null = null;
     const { data: existingCustomer } = await supabase
-      .from('customers')
+      .from('BeloriBH_customers')
       .select('id')
       .eq('email', customer.email)
       .single();
@@ -101,7 +101,7 @@ serve(async (req: Request) => {
       customerId = existingCustomer.id;
     } else {
       const { data: newCustomer, error: customerError } = await supabase
-        .from('customers')
+        .from('BeloriBH_customers')
         .insert({
           email: customer.email,
           full_name: customer.name,
@@ -123,7 +123,7 @@ serve(async (req: Request) => {
 
     // Create order in database with pending status
     const { data: order, error: orderError } = await supabase
-      .from('orders')
+      .from('BeloriBH_orders')
       .insert({
         order_number: orderNumber,
         customer_id: customerId,
@@ -156,7 +156,7 @@ serve(async (req: Request) => {
     }));
 
     const { error: itemsError } = await supabase
-      .from('order_items')
+      .from('BeloriBH_order_items')
       .insert(orderItems);
 
     if (itemsError) {

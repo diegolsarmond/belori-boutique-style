@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -75,7 +76,7 @@ serve(async (req) => {
 
         // Update order status
         const { error: updateError } = await supabase
-          .from('orders')
+          .from('BeloriBH_orders')
           .update({
             status: orderStatus,
             notes: `Payment ID: ${paymentId}, Status: ${status}`,
@@ -92,14 +93,14 @@ serve(async (req) => {
         // If payment approved, update product stock
         if (orderStatus === 'paid') {
           const { data: order } = await supabase
-            .from('orders')
+            .from('BeloriBH_orders')
             .select('id')
             .eq('order_number', externalReference)
             .single();
 
           if (order) {
             const { data: orderItems } = await supabase
-              .from('order_items')
+              .from('BeloriBH_order_items')
               .select('product_id, quantity')
               .eq('order_id', order.id);
 
@@ -107,7 +108,7 @@ serve(async (req) => {
               for (const item of orderItems) {
                 // Decrement stock
                 const { data: product } = await supabase
-                  .from('products')
+                  .from('BeloriBH_products')
                   .select('stock_quantity')
                   .eq('id', item.product_id)
                   .single();
@@ -115,10 +116,10 @@ serve(async (req) => {
                 if (product) {
                   const newStock = Math.max(0, product.stock_quantity - item.quantity);
                   await supabase
-                    .from('products')
+                    .from('BeloriBH_products')
                     .update({ stock_quantity: newStock })
                     .eq('id', item.product_id);
-                  
+
                   console.log(`Updated stock for product ${item.product_id}: ${product.stock_quantity} -> ${newStock}`);
                 }
               }
