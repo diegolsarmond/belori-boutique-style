@@ -86,7 +86,7 @@ export default function Produtos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("BeloriBH_products")
-        .select("*, suppliers(name)")
+        .select("*, suppliers:BeloriBH_suppliers(name)")
         .order("name");
       if (error) throw error;
       return data as unknown as Product[];
