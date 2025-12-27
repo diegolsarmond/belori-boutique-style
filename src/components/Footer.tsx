@@ -3,6 +3,19 @@ import { Instagram, Facebook, Phone, Mail } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+interface CategoryConfig {
+  name: string;
+  href: string;
+  slug: string;
+}
+
+const allCategories: CategoryConfig[] = [
+  { name: "Roupas", href: "/categoria/roupas", slug: "roupas" },
+  { name: "Sapatos", href: "/categoria/sapatos", slug: "sapatos" },
+  { name: "Acessórios", href: "/categoria/acessorios", slug: "acessorios" },
+  { name: "Outros", href: "/categoria/outros", slug: "outros" },
+];
+
 export const Footer = () => {
   const { data: settings } = useQuery({
     queryKey: ["site-settings-footer"],
@@ -17,7 +30,7 @@ export const Footer = () => {
           "footer_whatsapp",
         ]);
       if (error) throw error;
-      
+
       return data.reduce(
         (acc, setting) => ({
           ...acc,
@@ -27,6 +40,32 @@ export const Footer = () => {
       );
     },
   });
+
+  const { data: productCounts } = useQuery({
+    queryKey: ['footer-category-product-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .eq("is_active", true)
+        .gt("stock_quantity", 0);
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach(product => {
+        if (product.category) {
+          counts[product.category] = (counts[product.category] || 0) + 1;
+        }
+      });
+      return counts;
+    }
+  });
+
+  // Filtrar categorias que têm produtos
+  const categoriesWithProducts = allCategories.filter(
+    category => productCounts && productCounts[category.slug] > 0
+  );
 
   const email = settings?.footer_email || "contato@belori.com.br";
   const phone = settings?.footer_phone || "(11) 99999-9999";
@@ -42,35 +81,24 @@ export const Footer = () => {
               <span className="text-accent">ori</span>
             </h3>
             <p className="text-sm text-muted-foreground">
-              Estilo e elegância para todas as ocasiões. Encontre os melhores calçados, roupas, perfumes e cosméticos.
+              Estilo e elegância para todas as ocasiões. Encontre os melhores produtos para você.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-4">Categorias</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/categoria/calcados" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Calçados
-                </Link>
-              </li>
-              <li>
-                <Link to="/categoria/roupas" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Roupas
-                </Link>
-              </li>
-              <li>
-                <Link to="/categoria/perfumes" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Perfumes
-                </Link>
-              </li>
-              <li>
-                <Link to="/categoria/cosmeticos" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Cosméticos
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {categoriesWithProducts.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-4">Categorias</h4>
+              <ul className="space-y-2 text-sm">
+                {categoriesWithProducts.map((category) => (
+                  <li key={category.slug}>
+                    <Link to={category.href} className="text-muted-foreground hover:text-foreground transition-colors">
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <h4 className="font-semibold mb-4">Atendimento</h4>
@@ -139,3 +167,4 @@ export const Footer = () => {
     </footer>
   );
 };
+

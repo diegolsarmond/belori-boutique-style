@@ -1,35 +1,82 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Footprints, Shirt, Sparkles, Palette } from "lucide-react";
+import { Footprints, Shirt, Sparkles, Palette, Package } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { LucideIcon } from "lucide-react";
 
-const categories = [
-  {
-    name: "Calçados",
-    icon: Footprints,
-    href: "/categoria/calcados",
-    description: "Tênis, sapatos e sapatilhas"
-  },
+interface CategoryConfig {
+  name: string;
+  icon: LucideIcon;
+  href: string;
+  description: string;
+  slug: string;
+}
+
+const allCategories: CategoryConfig[] = [
   {
     name: "Roupas",
     icon: Shirt,
     href: "/categoria/roupas",
-    description: "Moda para todos os estilos"
+    description: "Moda para todos os estilos",
+    slug: "roupas"
   },
   {
-    name: "Perfumes",
+    name: "Sapatos",
+    icon: Footprints,
+    href: "/categoria/sapatos",
+    description: "Tênis, sapatos e sapatilhas",
+    slug: "sapatos"
+  },
+  {
+    name: "Acessórios",
     icon: Sparkles,
-    href: "/categoria/perfumes",
-    description: "Fragrâncias marcantes"
+    href: "/categoria/acessorios",
+    description: "Complemente seu visual",
+    slug: "acessorios"
   },
   {
-    name: "Cosméticos",
-    icon: Palette,
-    href: "/categoria/cosmeticos",
-    description: "Beleza e cuidados"
+    name: "Outros",
+    icon: Package,
+    href: "/categoria/outros",
+    description: "Mais produtos para você",
+    slug: "outros"
   }
 ];
 
 export const Categories = () => {
+  const { data: productCounts, isLoading } = useQuery({
+    queryKey: ['category-product-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .eq("is_active", true)
+        .gt("stock_quantity", 0);
+
+      if (error) throw error;
+
+      // Contar produtos por categoria
+      const counts: Record<string, number> = {};
+      data?.forEach(product => {
+        if (product.category) {
+          counts[product.category] = (counts[product.category] || 0) + 1;
+        }
+      });
+      return counts;
+    }
+  });
+
+  // Filtrar categorias que têm produtos
+  const categoriesWithProducts = allCategories.filter(
+    category => productCounts && productCounts[category.slug] > 0
+  );
+
+  // Não exibir a seção se estiver carregando ou não houver categorias com produtos
+  if (isLoading || categoriesWithProducts.length === 0) {
+    return null;
+  }
+
   return (
     <section className="container mx-auto px-4 py-16">
       <div className="text-center mb-12">
@@ -38,7 +85,7 @@ export const Categories = () => {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {categories.map((category) => (
+        {categoriesWithProducts.map((category) => (
           <Link key={category.name} to={category.href}>
             <Card className="group hover:shadow-lg transition-all hover:border-accent">
               <CardContent className="flex flex-col items-center justify-center p-6 md:p-8 text-center">

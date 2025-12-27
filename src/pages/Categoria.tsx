@@ -7,10 +7,10 @@ import { Product } from "@/types/product";
 import { Loader2 } from "lucide-react";
 
 const categoryNames: Record<string, string> = {
-  calcados: "Calçados",
   roupas: "Roupas",
-  perfumes: "Perfumes",
-  cosmeticos: "Cosméticos"
+  sapatos: "Sapatos",
+  acessorios: "Acessórios",
+  outros: "Outros"
 };
 
 const Categoria = () => {
@@ -25,12 +25,14 @@ const Categoria = () => {
         .from("products")
         .select("*")
         .eq("is_active", true)
+        .eq("category", categoria)
         .gt("stock_quantity", 0)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Product[];
-    }
+    },
+    enabled: !!categoria
   });
 
   return (

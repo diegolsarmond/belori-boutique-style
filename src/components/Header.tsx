@@ -8,19 +8,66 @@ import {
 } from "@/components/ui/sheet";
 import { CartDrawer } from "./CartDrawer";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const navigation = [
+interface CategoryConfig {
+  name: string;
+  href: string;
+  slug: string;
+}
+
+const allCategories: CategoryConfig[] = [
+  { name: "Roupas", href: "/categoria/roupas", slug: "roupas" },
+  { name: "Sapatos", href: "/categoria/sapatos", slug: "sapatos" },
+  { name: "Acessórios", href: "/categoria/acessorios", slug: "acessorios" },
+  { name: "Outros", href: "/categoria/outros", slug: "outros" },
+];
+
+const fixedNavigation = [
   { name: "Início", href: "/" },
-  { name: "Calçados", href: "/categoria/calcados" },
-  { name: "Roupas", href: "/categoria/roupas" },
-  { name: "Perfumes", href: "/categoria/perfumes" },
-  { name: "Cosméticos", href: "/categoria/cosmeticos" },
+];
+
+const endNavigation = [
   { name: "Sobre", href: "/sobre" },
 ];
 
 export const Header = () => {
   const { user, isAdmin } = useAuth();
-  
+
+  const { data: productCounts } = useQuery({
+    queryKey: ['header-category-product-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .eq("is_active", true)
+        .gt("stock_quantity", 0);
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach(product => {
+        if (product.category) {
+          counts[product.category] = (counts[product.category] || 0) + 1;
+        }
+      });
+      return counts;
+    }
+  });
+
+  // Filtrar categorias que têm produtos
+  const categoriesWithProducts = allCategories.filter(
+    category => productCounts && productCounts[category.slug] > 0
+  );
+
+  // Montar navegação dinâmica
+  const navigation = [
+    ...fixedNavigation,
+    ...categoriesWithProducts.map(cat => ({ name: cat.name, href: cat.href })),
+    ...endNavigation
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -59,7 +106,7 @@ export const Header = () => {
             </Button>
           )}
           <CartDrawer />
-          
+
           {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild className="md:hidden">
@@ -86,3 +133,4 @@ export const Header = () => {
     </header>
   );
 };
+
