@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -24,14 +25,31 @@ interface CustomerInfo {
   postalCode?: string;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+
+    // Check database settings
+    const { data: paymentSettings, error: paymentSettingsError } = await supabase
+      .from('BeloriBH_payment_settings')
+      .select('access_token, is_active')
+      .eq('provider', 'mercadopago')
+      .maybeSingle();
+
+    if (!paymentSettingsError && paymentSettings?.is_active && paymentSettings?.access_token) {
+      console.log('Using Mercado Pago Access Token from database');
+      accessToken = paymentSettings.access_token;
+    }
 
     if (!accessToken) {
       console.error('MERCADO_PAGO_ACCESS_TOKEN not configured');
@@ -54,10 +72,7 @@ serve(async (req) => {
     console.log('Creating preference for items:', items);
     console.log('Customer:', customer);
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Generate order number
 
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase
