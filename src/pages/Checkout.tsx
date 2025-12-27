@@ -16,7 +16,8 @@ export default function Checkout() {
   const [searchParams] = useSearchParams();
   const { items, clearCart, getTotalPrice } = useCartStore();
   const [isProcessing, setIsProcessing] = useState(false);
-  
+  const [isCepLoading, setIsCepLoading] = useState(false);
+
   const [customerData, setCustomerData] = useState({
     name: "",
     email: "",
@@ -40,9 +41,70 @@ export default function Checkout() {
     setCustomerData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePhoneChange = (value: string) => {
+    // Remove all non-numeric chars
+    const phone = value.replace(/\D/g, "");
+
+    // Auto-formatting (XX) XXXXX-XXXX
+    let formattedPhone = phone;
+    if (phone.length > 10) {
+      formattedPhone = phone.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+    } else if (phone.length > 5) {
+      formattedPhone = phone.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+    } else if (phone.length > 2) {
+      formattedPhone = phone.replace(/^(\d{2})(\d{0,5})/, "($1) $2");
+    }
+
+    setCustomerData(prev => ({ ...prev, phone: formattedPhone }));
+  };
+
+  const handleCepChange = async (value: string) => {
+    // Remove characters that are not numbers
+    const cep = value.replace(/\D/g, "");
+
+    // Mask 00000-000
+    let formattedCep = cep;
+    if (cep.length > 5) {
+      formattedCep = cep.replace(/^(\d{5})(\d)/, "$1-$2");
+    }
+
+    setCustomerData(prev => ({ ...prev, postalCode: formattedCep }));
+
+    if (cep.length === 8) {
+      setIsCepLoading(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+
+        if (data.erro) {
+          toast.error("CEP não encontrado");
+          return;
+        }
+
+        setCustomerData(prev => ({
+          ...prev,
+          address: `${data.logradouro}, ${data.bairro}`,
+          city: data.localidade,
+          state: data.uf,
+        }));
+
+        // Focus on address field to encourage adding number
+        const addressInput = document.getElementById("address");
+        if (addressInput) {
+          addressInput.focus();
+        }
+
+      } catch (error) {
+        toast.error("Erro ao buscar endereço pelo CEP");
+      } finally {
+        setIsCepLoading(false);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!customerData.name || !customerData.email) {
       toast.error("Por favor, preencha seu nome e email");
       return;
@@ -94,7 +156,7 @@ export default function Checkout() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         <Button
           variant="ghost"
@@ -127,7 +189,7 @@ export default function Checkout() {
                       placeholder="Seu nome completo"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="email">Email *</Label>
                     <Input
@@ -139,37 +201,36 @@ export default function Checkout() {
                       placeholder="seu@email.com"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="phone">Telefone</Label>
                     <Input
                       id="phone"
                       value={customerData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="(11) 99999-9999"
+                      maxLength={15}
                     />
                   </div>
-                  
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="address">Endereço</Label>
-                    <Input
-                      id="address"
-                      value={customerData.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      placeholder="Rua, número, complemento"
-                    />
-                  </div>
-                  
+
                   <div>
-                    <Label htmlFor="city">Cidade</Label>
-                    <Input
-                      id="city"
-                      value={customerData.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      placeholder="São Paulo"
-                    />
+                    <Label htmlFor="postalCode">CEP</Label>
+                    <div className="relative">
+                      <Input
+                        id="postalCode"
+                        value={customerData.postalCode}
+                        onChange={(e) => handleCepChange(e.target.value)}
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                      {isCepLoading && (
+                        <div className="absolute right-3 top-2.5">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="state">Estado</Label>
                     <Input
@@ -180,21 +241,31 @@ export default function Checkout() {
                       maxLength={2}
                     />
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="postalCode">CEP</Label>
+
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="address">Endereço</Label>
                     <Input
-                      id="postalCode"
-                      value={customerData.postalCode}
-                      onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                      placeholder="00000-000"
+                      id="address"
+                      value={customerData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="Rua, número, complemento"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input
+                      id="city"
+                      value={customerData.city}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      placeholder="São Paulo"
                     />
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6" 
+                <Button
+                  type="submit"
+                  className="w-full mt-6"
                   size="lg"
                   disabled={isProcessing}
                 >
@@ -246,21 +317,21 @@ export default function Checkout() {
                       </p>
                     </div>
                     <p className="font-semibold">
-                      {(item.price * item.quantity).toLocaleString('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
+                      {(item.price * item.quantity).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
                       })}
                     </p>
                   </div>
                 ))}
-                
+
                 <div className="border-t pt-4 mt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Total</span>
                     <span className="text-2xl font-bold text-primary">
-                      {totalPrice.toLocaleString('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
+                      {totalPrice.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
                       })}
                     </span>
                   </div>

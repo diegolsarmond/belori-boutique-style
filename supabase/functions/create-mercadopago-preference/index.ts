@@ -32,7 +32,7 @@ serve(async (req) => {
 
   try {
     const accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
-    
+
     if (!accessToken) {
       console.error('MERCADO_PAGO_ACCESS_TOKEN not configured');
       return new Response(
@@ -117,7 +117,7 @@ serve(async (req) => {
         total_amount: totalAmount,
         status: 'pending',
         payment_method: 'mercadopago',
-        shipping_address: customer.address ? 
+        shipping_address: customer.address ?
           `${customer.address}, ${customer.city} - ${customer.state}, ${customer.postalCode}` : null,
       })
       .select('id')
@@ -163,12 +163,12 @@ serve(async (req) => {
         surname: customer.name.split(' ').slice(1).join(' ') || '',
         email: customer.email,
         phone: customer.phone ? {
-          area_code: customer.phone.substring(0, 2),
-          number: customer.phone.substring(2),
+          area_code: customer.phone.replace(/\D/g, '').substring(0, 2),
+          number: customer.phone.replace(/\D/g, '').substring(2),
         } : undefined,
         address: customer.address ? {
           street_name: customer.address,
-          zip_code: customer.postalCode || '',
+          zip_code: customer.postalCode?.replace(/\D/g, '') || '',
         } : undefined,
       },
       back_urls: {
