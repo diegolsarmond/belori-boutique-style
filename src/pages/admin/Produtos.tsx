@@ -129,19 +129,13 @@ export default function Produtos() {
     },
   });
 
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from("product-images").getPublicUrl(filePath);
-    return data.publicUrl;
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const createMutation = useMutation({
@@ -289,12 +283,12 @@ export default function Produtos() {
       let additionalImages = [...existingAdditionalImages];
 
       if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+        imageUrl = await convertToBase64(imageFile);
       }
 
       if (additionalImageFiles.length > 0) {
         const newImages = await Promise.all(
-          additionalImageFiles.map((file) => uploadImage(file))
+          additionalImageFiles.map((file) => convertToBase64(file))
         );
         additionalImages = [...additionalImages, ...newImages];
       }
