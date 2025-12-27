@@ -8,8 +8,8 @@ interface CartStore {
   isLoading: boolean;
 
   addItem: (item: CartItem) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
+  removeItem: (cartItemId: string) => void;
   clearCart: () => void;
   setLoading: (loading: boolean) => void;
   getTotalItems: () => number;
@@ -24,37 +24,36 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         const { items } = get();
-        const existingItem = items.find(i => i.productId === item.productId);
+        // Create a unique ID for the configuration
+        const uniqueId = `${item.productId}-${item.selectedColor || 'default'}-${item.selectedSize || 'default'}`;
 
-        if (existingItem) {
-          set({
-            items: items.map(i =>
-              i.productId === item.productId
-                ? { ...i, quantity: i.quantity + item.quantity }
-                : i
-            )
-          });
+        const existingItemIndex = items.findIndex(i => i.cartItemId === uniqueId);
+
+        if (existingItemIndex > -1) {
+          const newItems = [...items];
+          newItems[existingItemIndex].quantity += item.quantity;
+          set({ items: newItems });
         } else {
-          set({ items: [...items, item] });
+          set({ items: [...items, { ...item, cartItemId: uniqueId }] });
         }
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (cartItemId, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(cartItemId);
           return;
         }
 
         set({
           items: get().items.map(item =>
-            item.productId === productId ? { ...item, quantity } : item
+            item.cartItemId === cartItemId ? { ...item, quantity } : item
           )
         });
       },
 
-      removeItem: (productId) => {
+      removeItem: (cartItemId) => {
         set({
-          items: get().items.filter(item => item.productId !== productId)
+          items: get().items.filter(item => item.cartItemId !== cartItemId)
         });
       },
 

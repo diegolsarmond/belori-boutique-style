@@ -15,6 +15,9 @@ const Produto = () => {
   const addItem = useCartStore(state => state.addItem);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+
   const { data: productData, isLoading, error } = useQuery({
     queryKey: ['product', handle],
     queryFn: async () => {
@@ -67,12 +70,24 @@ const Produto = () => {
       return;
     }
 
+    if (productData.colors?.length && !selectedColor) {
+      toast.error("Por favor, selecione uma cor");
+      return;
+    }
+
+    if (productData.sizes?.length && !selectedSize) {
+      toast.error("Por favor, selecione um tamanho");
+      return;
+    }
+
     addItem({
       productId: productData.id,
       name: productData.name,
       price: productData.price,
       quantity: 1,
-      imageUrl: productData.image_url
+      imageUrl: productData.image_url,
+      selectedColor: selectedColor || undefined,
+      selectedSize: selectedSize || undefined,
     });
 
     toast.success("Produto adicionado ao carrinho!", {
@@ -104,9 +119,9 @@ const Produto = () => {
                 <div className="flex gap-4 overflow-x-auto pb-2">
                   <button
                     onClick={() => setSelectedImage(productData.image_url)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${selectedImage === productData.image_url
-                        ? "border-primary"
-                        : "border-transparent"
+                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${selectedImage === productData.image_url
+                      ? "border-primary ring-2 ring-primary/20"
+                      : "border-transparent hover:border-primary/50"
                       }`}
                   >
                     <img
@@ -119,9 +134,9 @@ const Produto = () => {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(img)}
-                      className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${selectedImage === img
-                          ? "border-primary"
-                          : "border-transparent"
+                      className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${selectedImage === img
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-transparent hover:border-primary/50"
                         }`}
                     >
                       <img
@@ -150,12 +165,19 @@ const Produto = () => {
 
               {productData.colors && productData.colors.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-2">Cores:</h3>
-                  <div className="flex flex-wrap gap-2">
+                  <h3 className="font-semibold mb-3">Cores:</h3>
+                  <div className="flex flex-wrap gap-3">
                     {productData.colors.map((color, index) => (
-                      <span key={index} className="px-3 py-1 border rounded-md text-sm">
+                      <button
+                        key={index}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 py-2 border rounded-md text-sm transition-all ${selectedColor === color
+                            ? "border-primary bg-primary text-primary-foreground shadow-md"
+                            : "border-input hover:border-primary/50 hover:bg-accent/50"
+                          }`}
+                      >
                         {color}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -163,12 +185,19 @@ const Produto = () => {
 
               {productData.sizes && productData.sizes.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-2">Tamanhos:</h3>
-                  <div className="flex flex-wrap gap-2">
+                  <h3 className="font-semibold mb-3">Tamanhos:</h3>
+                  <div className="flex flex-wrap gap-3">
                     {productData.sizes.map((size, index) => (
-                      <span key={index} className="px-3 py-1 border rounded-md text-sm">
+                      <button
+                        key={index}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 border rounded-md text-sm transition-all ${selectedSize === size
+                            ? "border-primary bg-primary text-primary-foreground shadow-md"
+                            : "border-input hover:border-primary/50 hover:bg-accent/50"
+                          }`}
+                      >
                         {size}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -180,7 +209,7 @@ const Produto = () => {
 
               <Button
                 size="lg"
-                className="w-full"
+                className="w-full text-lg h-12"
                 onClick={handleAddToCart}
                 disabled={productData.stock_quantity <= 0}
               >

@@ -115,13 +115,19 @@ export default function Checkout() {
     try {
       const { data, error } = await supabase.functions.invoke('create-mercadopago-preference', {
         body: {
-          items: items.map(item => ({
-            productId: item.productId,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            imageUrl: item.imageUrl,
-          })),
+          items: items.map(item => {
+            let name = item.name;
+            if (item.selectedColor) name += ` - Cor: ${item.selectedColor}`;
+            if (item.selectedSize) name += ` - Tam: ${item.selectedSize}`;
+
+            return {
+              productId: item.productId,
+              name: name,
+              price: item.price,
+              quantity: item.quantity,
+              imageUrl: item.imageUrl,
+            };
+          }),
           customer: customerData,
           backUrls: {
             success: `${window.location.origin}/checkout/sucesso`,
@@ -296,7 +302,7 @@ export default function Checkout() {
             <CardContent>
               <div className="space-y-4">
                 {items.map((item) => (
-                  <div key={item.productId} className="flex gap-4">
+                  <div key={item.cartItemId || item.productId} className="flex gap-4">
                     <div className="w-16 h-16 bg-secondary/20 rounded-md overflow-hidden flex-shrink-0">
                       {item.imageUrl ? (
                         <img
@@ -312,6 +318,10 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium">{item.name}</h4>
+                      <div className="text-sm text-muted-foreground">
+                        {item.selectedColor && <span className="mr-2">Cor: {item.selectedColor}</span>}
+                        {item.selectedSize && <span>Tam: {item.selectedSize}</span>}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         Qtd: {item.quantity}
                       </p>

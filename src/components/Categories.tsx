@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LucideIcon } from "lucide-react";
 
-interface CategoryConfig {
+export interface CategoryConfig {
   name: string;
   icon: LucideIcon;
   href: string;
@@ -13,7 +13,7 @@ interface CategoryConfig {
   slug: string;
 }
 
-const allCategories: CategoryConfig[] = [
+export const allCategories: CategoryConfig[] = [
   {
     name: "Roupas",
     icon: Shirt,

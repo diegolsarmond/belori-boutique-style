@@ -21,4 +21,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string | null;
+  selectedColor?: string;
+  selectedSize?: string;
+  cartItemId?: string;
 }
