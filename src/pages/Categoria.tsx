@@ -22,7 +22,7 @@ const Categoria = () => {
     queryKey: ['products-category', categoria],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("*")
         .eq("is_active", true)
         .eq("category", categoria)

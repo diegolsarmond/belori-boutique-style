@@ -38,7 +38,7 @@ export default function Usuarios() {
         queryFn: async () => {
             // Fetch profiles
             const { data: profiles, error: profilesError } = await supabase
-                .from('profiles')
+                .from('BeloriBH_profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
 
@@ -46,7 +46,7 @@ export default function Usuarios() {
 
             // Fetch user roles
             const { data: roles, error: rolesError } = await supabase
-                .from('user_roles')
+                .from('BeloriBH_user_roles')
                 .select('*');
 
             if (rolesError) throw rolesError;
@@ -68,20 +68,20 @@ export default function Usuarios() {
         mutationFn: async ({ userId, role }: { userId: string, role: "admin" | "user" }) => {
             // Check if role entry exists
             const { data: existingRole } = await supabase
-                .from('user_roles')
+                .from('BeloriBH_user_roles')
                 .select('*')
                 .eq('user_id', userId)
                 .single();
 
             if (existingRole) {
                 const { error } = await supabase
-                    .from('user_roles')
+                    .from('BeloriBH_user_roles')
                     .update({ role })
                     .eq('user_id', userId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
-                    .from('user_roles')
+                    .from('BeloriBH_user_roles')
                     .insert([{ user_id: userId, role }]);
                 if (error) throw error;
             }
@@ -104,11 +104,11 @@ export default function Usuarios() {
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             // Delete from user_roles first
-            await supabase.from('user_roles').delete().eq('user_id', id);
+            await supabase.from('BeloriBH_user_roles').delete().eq('user_id', id);
 
             // Delete from profiles
             const { error } = await supabase
-                .from('profiles')
+                .from('BeloriBH_profiles')
                 .delete()
                 .eq('id', id);
 
@@ -145,7 +145,7 @@ export default function Usuarios() {
             if (data.user) {
                 if (userData.role === 'admin') {
                     const { error: roleError } = await supabase
-                        .from('user_roles')
+                        .from('BeloriBH_user_roles')
                         .insert([{ user_id: data.user.id, role: 'admin' }]);
 
                     if (roleError) {

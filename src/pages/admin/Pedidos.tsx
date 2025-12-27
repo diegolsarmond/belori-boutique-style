@@ -32,7 +32,7 @@ export default function Pedidos() {
     queryKey: ['admin-orders'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('orders')
+        .from('BeloriBH_orders')
         .select('*')
         .order('created_at', { ascending: false });
       return data || [];

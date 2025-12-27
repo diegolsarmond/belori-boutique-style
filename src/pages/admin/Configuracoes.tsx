@@ -26,7 +26,7 @@ export default function Configuracoes() {
     queryKey: ["site-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("site_settings")
+        .from("BeloriBH_site_settings")
         .select("*")
         .in("setting_key", [
           "footer_email",
@@ -80,7 +80,7 @@ export default function Configuracoes() {
 
       for (const update of updates) {
         const { error } = await supabase
-          .from("site_settings")
+          .from("BeloriBH_site_settings")
           .upsert({ setting_key: update.setting_key, setting_value: update.setting_value }, { onConflict: 'setting_key' });
         if (error) throw error;
       }

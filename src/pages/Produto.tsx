@@ -21,7 +21,7 @@ const Produto = () => {
       if (!handle) throw new Error("Product ID is required");
 
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("*")
         .eq("id", handle)
         .single();

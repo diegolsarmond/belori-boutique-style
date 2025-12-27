@@ -50,7 +50,7 @@ export default function Slides() {
     queryKey: ["admin-slides"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("slides")
+        .from("BeloriBH_slides")
         .select("*")
         .order("display_order", { ascending: true });
       
@@ -65,13 +65,13 @@ export default function Slides() {
     const filePath = `${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("slides")
+      .from("BeloriBH_slides")
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
     const { data: { publicUrl } } = supabase.storage
-      .from("slides")
+      .from("BeloriBH_slides")
       .getPublicUrl(filePath);
 
     return publicUrl;
@@ -86,7 +86,7 @@ export default function Slides() {
         imageUrl = await uploadImage(data.image_file);
       }
 
-      const { error } = await supabase.from("slides").insert({
+      const { error } = await supabase.from("BeloriBH_slides").insert({
         title: data.title,
         description: data.description || null,
         image_url: imageUrl,
@@ -120,7 +120,7 @@ export default function Slides() {
       }
 
       const { error } = await supabase
-        .from("slides")
+        .from("BeloriBH_slides")
         .update({
           title: data.title,
           description: data.description || null,
@@ -148,7 +148,7 @@ export default function Slides() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("slides").delete().eq("id", id);
+      const { error } = await supabase.from("BeloriBH_slides").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -163,7 +163,7 @@ export default function Slides() {
   const reorderMutation = useMutation({
     mutationFn: async ({ id, newOrder }: { id: string; newOrder: number }) => {
       const { error } = await supabase
-        .from("slides")
+        .from("BeloriBH_slides")
         .update({ display_order: newOrder })
         .eq("id", id);
       if (error) throw error;

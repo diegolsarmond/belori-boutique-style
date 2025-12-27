@@ -62,7 +62,7 @@ export default function Fornecedores() {
     queryKey: ["suppliers"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("suppliers")
+        .from("BeloriBH_suppliers")
         .select("*")
         .order("name");
       if (error) throw error;
@@ -72,7 +72,7 @@ export default function Fornecedores() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("suppliers").insert(data);
+      const { error } = await supabase.from("BeloriBH_suppliers").insert(data);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -86,7 +86,7 @@ export default function Fornecedores() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const { error } = await supabase
-        .from("suppliers")
+        .from("BeloriBH_suppliers")
         .update(data)
         .eq("id", id);
       if (error) throw error;
@@ -101,7 +101,7 @@ export default function Fornecedores() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("suppliers").delete().eq("id", id);
+      const { error } = await supabase.from("BeloriBH_suppliers").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -46,7 +46,7 @@ export function useAuth() {
   const checkAdminRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
+        .from('BeloriBH_user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')

@@ -32,7 +32,7 @@ export default function Clientes() {
     queryKey: ['admin-customers'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('customers')
+        .from('BeloriBH_customers')
         .select('*')
         .order('created_at', { ascending: false });
       return data || [];
@@ -42,7 +42,7 @@ export default function Clientes() {
   const createMutation = useMutation({
     mutationFn: async (newCustomer: typeof formData) => {
       const { error } = await supabase
-        .from('customers')
+        .from('BeloriBH_customers')
         .insert([newCustomer]);
       
       if (error) throw error;
@@ -69,7 +69,7 @@ export default function Clientes() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('customers')
+        .from('BeloriBH_customers')
         .delete()
         .eq('id', id);
       

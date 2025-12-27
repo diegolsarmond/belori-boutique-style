@@ -69,7 +69,7 @@ export default function AcompanharPedido() {
       if (!searchedOrder) return null;
       
       const { data, error } = await supabase
-        .from("orders")
+        .from("BeloriBH_orders")
         .select(`
           *,
           order_items (*)

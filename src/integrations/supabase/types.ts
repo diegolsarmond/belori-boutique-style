@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      customers: {
+      BeloriBH_customers: {
         Row: {
           address: string | null
           city: string | null
@@ -59,7 +59,7 @@ export type Database = {
         }
         Relationships: []
       }
-      order_items: {
+      BeloriBH_order_items: {
         Row: {
           created_at: string
           id: string
@@ -98,12 +98,12 @@ export type Database = {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "BeloriBH_orders"
             referencedColumns: ["id"]
           },
         ]
       }
-      orders: {
+      BeloriBH_orders: {
         Row: {
           created_at: string
           customer_email: string
@@ -154,12 +154,12 @@ export type Database = {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "customers"
+            referencedRelation: "BeloriBH_customers"
             referencedColumns: ["id"]
           },
         ]
       }
-      products: {
+      BeloriBH_products: {
         Row: {
           additional_images: string[] | null
           category: string | null
@@ -213,12 +213,12 @@ export type Database = {
             foreignKeyName: "products_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "suppliers"
+            referencedRelation: "BeloriBH_suppliers"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      BeloriBH_profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
@@ -245,7 +245,7 @@ export type Database = {
         }
         Relationships: []
       }
-      site_settings: {
+      BeloriBH_site_settings: {
         Row: {
           created_at: string
           id: string
@@ -269,7 +269,7 @@ export type Database = {
         }
         Relationships: []
       }
-      slides: {
+      BeloriBH_slides: {
         Row: {
           created_at: string
           description: string | null
@@ -305,7 +305,7 @@ export type Database = {
         }
         Relationships: []
       }
-      suppliers: {
+      BeloriBH_suppliers: {
         Row: {
           address: string | null
           contact_name: string | null
@@ -344,7 +344,7 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
+      BeloriBH_user_roles: {
         Row: {
           created_at: string
           id: string

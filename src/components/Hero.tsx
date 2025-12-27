@@ -20,7 +20,7 @@ export const Hero = () => {
     queryKey: ["slides"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("slides")
+        .from("BeloriBH_slides")
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });

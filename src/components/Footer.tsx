@@ -21,7 +21,7 @@ export const Footer = () => {
     queryKey: ["site-settings-footer"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("site_settings")
+        .from("BeloriBH_site_settings")
         .select("*")
         .in("setting_key", [
           "footer_email",
@@ -45,7 +45,7 @@ export const Footer = () => {
     queryKey: ['footer-category-product-counts'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("category")
         .eq("is_active", true)
         .gt("stock_quantity", 0);

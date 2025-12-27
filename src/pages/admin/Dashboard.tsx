@@ -9,7 +9,7 @@ export default function Dashboard() {
     queryKey: ['admin-orders-count'],
     queryFn: async () => {
       const { count } = await supabase
-        .from('orders')
+        .from('BeloriBH_orders')
         .select('*', { count: 'exact', head: true });
       return count || 0;
     }
@@ -19,7 +19,7 @@ export default function Dashboard() {
     queryKey: ['admin-customers-count'],
     queryFn: async () => {
       const { count } = await supabase
-        .from('customers')
+        .from('BeloriBH_customers')
         .select('*', { count: 'exact', head: true });
       return count || 0;
     }
@@ -29,7 +29,7 @@ export default function Dashboard() {
     queryKey: ['admin-products-count'],
     queryFn: async () => {
       const { count } = await supabase
-        .from('products')
+        .from('BeloriBH_products')
         .select('*', { count: 'exact', head: true });
       return count || 0;
     }
@@ -39,7 +39,7 @@ export default function Dashboard() {
     queryKey: ['admin-revenue'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('orders')
+        .from('BeloriBH_orders')
         .select('total_amount');
       
       const total = data?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;

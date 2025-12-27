@@ -24,7 +24,7 @@ const Index = () => {
     queryKey: ['products-storefront'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("*")
         .eq("is_active", true)
         .gt("stock_quantity", 0)

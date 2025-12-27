@@ -39,7 +39,7 @@ export const Header = () => {
     queryKey: ['header-category-product-counts'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("category")
         .eq("is_active", true)
         .gt("stock_quantity", 0);

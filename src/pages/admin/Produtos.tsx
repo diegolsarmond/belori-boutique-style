@@ -85,7 +85,7 @@ export default function Produtos() {
     queryKey: ["products"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("products")
+        .from("BeloriBH_products")
         .select("*, suppliers(name)")
         .order("name");
       if (error) throw error;
@@ -97,7 +97,7 @@ export default function Produtos() {
     queryKey: ["suppliers-active"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("suppliers")
+        .from("BeloriBH_suppliers")
         .select("id, name")
         .eq("is_active", true)
         .order("name");
@@ -135,7 +135,7 @@ export default function Produtos() {
       colors?: string[] | null;
       sizes?: string[] | null;
     }) => {
-      const { error } = await supabase.from("products").insert(data);
+      const { error } = await supabase.from("BeloriBH_products").insert(data);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -166,7 +166,7 @@ export default function Produtos() {
         sizes?: string[] | null;
       };
     }) => {
-      const { error } = await supabase.from("products").update(data).eq("id", id);
+      const { error } = await supabase.from("BeloriBH_products").update(data).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -179,7 +179,7 @@ export default function Produtos() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
+      const { error } = await supabase.from("BeloriBH_products").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
