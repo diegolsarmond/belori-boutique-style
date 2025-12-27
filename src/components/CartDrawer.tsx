@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,40 +10,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ShoppingCart, Minus, Plus, Trash2, MessageCircle, Loader2 } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, CreditCard } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
-import { toast } from "sonner";
 
 export const CartDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   const { 
     items, 
-    isLoading, 
     updateQuantity, 
     removeItem,
-    clearCart
   } = useCartStore();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleWhatsAppCheckout = () => {
-    if (items.length === 0) return;
-
-    const message = items.map(item => 
-      `• ${item.name} (${item.quantity}x) - ${item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
-    ).join('\n');
-
-    const total = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const fullMessage = `Olá! Gostaria de fazer um pedido:\n\n${message}\n\n*Total: ${total}*`;
-    
-    // Default WhatsApp number - can be updated in site settings
-    const whatsappNumber = "5511999999999";
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(fullMessage)}`;
-    
-    window.open(whatsappUrl, '_blank');
-    toast.success("Redirecionando para WhatsApp...");
+  const handleCheckout = () => {
     setIsOpen(false);
+    navigate("/checkout");
   };
 
   return (
@@ -145,22 +130,13 @@ export const CartDrawer = () => {
                 </div>
                 
                 <Button 
-                  onClick={handleWhatsAppCheckout}
+                  onClick={handleCheckout}
                   className="w-full" 
                   size="lg"
-                  disabled={items.length === 0 || isLoading}
+                  disabled={items.length === 0}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Finalizar via WhatsApp
-                    </>
-                  )}
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Finalizar Compra
                 </Button>
               </div>
             </>
