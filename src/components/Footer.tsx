@@ -109,13 +109,13 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Política de Troca
-                </a>
+                <Link to="/acompanhar-pedido" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Acompanhar Pedido
+                </Link>
               </li>
               <li>
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Envios
+                  Política de Troca
                 </a>
               </li>
               <li>

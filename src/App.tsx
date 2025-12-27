@@ -10,6 +10,7 @@ import Sobre from "./pages/Sobre";
 import Auth from "./pages/Auth";
 import Checkout from "./pages/Checkout";
 import CheckoutResult from "./pages/CheckoutResult";
+import AcompanharPedido from "./pages/AcompanharPedido";
 import Dashboard from "./pages/admin/Dashboard";
 import Produtos from "./pages/admin/Produtos";
 
@@ -41,6 +42,8 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/sucesso" element={<CheckoutResult type="sucesso" />} />
           <Route path="/checkout/falha" element={<CheckoutResult type="falha" />} />
+          <Route path="/checkout/pendente" element={<CheckoutResult type="pendente" />} />
+          <Route path="/acompanhar-pedido" element={<AcompanharPedido />} />
           <Route path="/checkout/pendente" element={<CheckoutResult type="pendente" />} />
 
           {/* Admin Routes - Protected */}

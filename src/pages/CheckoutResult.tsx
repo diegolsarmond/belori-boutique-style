@@ -69,7 +69,17 @@ export default function CheckoutResult({ type }: { type: ResultType }) {
             )}
             
             <div className="flex flex-col gap-2 pt-4">
-              <Button onClick={() => navigate("/")} className="w-full">
+              {orderNumber && (
+                <Button 
+                  onClick={() => navigate(`/acompanhar-pedido?order=${orderNumber}`)} 
+                  className="w-full"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Acompanhar Pedido
+                </Button>
+              )}
+              
+              <Button variant="outline" onClick={() => navigate("/")} className="w-full">
                 <Home className="w-4 h-4 mr-2" />
                 Voltar à Loja
               </Button>
