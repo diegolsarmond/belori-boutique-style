@@ -37,6 +37,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { X, ChevronDown, Image as ImageIcon } from "lucide-react";
 
 interface Product {
   id: string;
@@ -59,24 +64,42 @@ interface Supplier {
   name: string;
 }
 
+const AVAILABLE_COLORS = [
+  "Preto", "Branco", "Cinza", "Bege", "Azul", "Azul Marinho", "Azul Claro",
+  "Vermelho", "Vinho", "Rosa", "Pink", "Verde", "Verde Militar", "Verde Lima",
+  "Amarelo", "Roxo", "Lilás", "Laranja", "Marrom", "Caramelo",
+  "Jeans", "Jeans Claro", "Jeans Escuro", "Dourado", "Prata", "Estampado", "Multicolor"
+];
+
 export default function Produtos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [existingAdditionalImages, setExistingAdditionalImages] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    stock_quantity: string;
+    supplier_id: string;
+    category: string;
+    colors: string[];
+    sizes: string;
+    is_active: boolean;
+  }>({
     name: "",
     description: "",
     price: "",
     stock_quantity: "",
     supplier_id: "",
     category: "",
-    colors: "",
+    colors: [],
     sizes: "",
     is_active: true,
   });
@@ -193,6 +216,7 @@ export default function Produtos() {
   const handleOpenDialog = (product?: Product) => {
     if (product) {
       setSelectedProduct(product);
+      setExistingAdditionalImages(product.additional_images || []);
       setFormData({
         name: product.name,
         description: product.description || "",
@@ -200,7 +224,7 @@ export default function Produtos() {
         stock_quantity: product.stock_quantity.toString(),
         supplier_id: product.supplier_id || "",
         category: product.category || "",
-        colors: product.colors?.join(", ") || "",
+        colors: product.colors || [],
         sizes: product.sizes?.join(", ") || "",
         is_active: product.is_active,
       });
@@ -212,6 +236,7 @@ export default function Produtos() {
     setIsDialogOpen(false);
     setSelectedProduct(null);
     setImageFile(null);
+    setExistingAdditionalImages([]);
     setFormData({
       name: "",
       description: "",
@@ -219,11 +244,28 @@ export default function Produtos() {
       stock_quantity: "",
       supplier_id: "",
       category: "",
-      colors: "",
+      colors: [],
       sizes: "",
       is_active: true,
     });
     setAdditionalImageFiles([]);
+  };
+
+  const removeNewImage = (index: number) => {
+    setAdditionalImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (index: number) => {
+    setExistingAdditionalImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleColor = (color: string) => {
+    setFormData(prev => {
+      const colors = prev.colors.includes(color)
+        ? prev.colors.filter(c => c !== color)
+        : [...prev.colors, color];
+      return { ...prev, colors };
+    });
   };
 
   const handleSubmit = async () => {
@@ -243,7 +285,8 @@ export default function Produtos() {
     try {
       setIsUploading(true);
       let imageUrl = selectedProduct?.image_url;
-      let additionalImages = selectedProduct?.additional_images || [];
+      // Start with the modified existing images list, not the original additional_images from product
+      let additionalImages = [...existingAdditionalImages];
 
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
@@ -256,21 +299,23 @@ export default function Produtos() {
         additionalImages = [...additionalImages, ...newImages];
       }
 
-      const colorsArray = formData.colors
-        ? formData.colors.split(",").map((c) => c.trim()).filter((c) => c !== "")
-        : null;
+      // Colors are already an array
+      const colorsArray = formData.colors;
 
       const sizesArray = formData.sizes
         ? formData.sizes.split(",").map((s) => s.trim()).filter((s) => s !== "")
         : null;
 
+      const supplierId = formData.supplier_id === "none" || !formData.supplier_id ? null : formData.supplier_id;
+      const category = formData.category === "none" || !formData.category ? null : formData.category;
+
       const data = {
         name: formData.name,
         description: formData.description || null,
-        price: parseFloat(formData.price),
-        stock_quantity: parseInt(formData.stock_quantity),
-        supplier_id: formData.supplier_id || null,
-        category: formData.category || null,
+        price: parseFloat(formData.price) || 0,
+        stock_quantity: parseInt(formData.stock_quantity) || 0,
+        supplier_id: supplierId,
+        category: category,
         colors: colorsArray,
         sizes: sizesArray,
         is_active: formData.is_active,
@@ -411,178 +456,322 @@ export default function Produtos() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>
-              {selectedProduct ? "Editar Produto" : "Adicionar Produto"}
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              {selectedProduct ? "Editar Produto" : "Novo Produto"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price">Preço (R$) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="stock_quantity">Quantidade em Estoque *</Label>
-                <Input
-                  id="stock_quantity"
-                  type="number"
-                  value={formData.stock_quantity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stock_quantity: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="supplier_id">Fornecedor</Label>
-              <Select
-                value={formData.supplier_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, supplier_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um fornecedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none" key="none">Nenhum</SelectItem>
-                  {suppliers?.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="image">Imagem Principal</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                />
-                <Upload className="h-5 w-5 text-muted-foreground" />
-              </div>
-              {selectedProduct?.image_url && !imageFile && (
-                <div className="mt-2">
-                  <img
-                    src={selectedProduct.image_url}
-                    alt="Preview"
-                    className="w-24 h-24 object-cover rounded"
-                  />
-                </div>
-              )}
-            </div>
 
-            <div>
-              <Label htmlFor="additional_images">Imagens Adicionais</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="additional_images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setAdditionalImageFiles(Array.from(e.target.files || []))}
-                />
-                <Upload className="h-5 w-5 text-muted-foreground" />
-              </div>
-              {selectedProduct?.additional_images && selectedProduct.additional_images.length > 0 && (
-                <div className="mt-2 flex gap-2 overflow-x-auto">
-                  {selectedProduct.additional_images.map((img, index) => (
-                    <img
-                      key={index}
-                      src={img}
-                      alt={`Preview ${index}`}
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+          <Tabs defaultValue="geral" className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="geral">Informações Gerais</TabsTrigger>
+              <TabsTrigger value="detalhes">Variações & Estoque</TabsTrigger>
+              <TabsTrigger value="imagens">Imagens</TabsTrigger>
+            </TabsList>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, category: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="roupas">Roupas</SelectItem>
-                    <SelectItem value="sapatos">Sapatos</SelectItem>
-                    <SelectItem value="acessorios">Acessórios</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {(formData.category === 'roupas' || formData.category === 'sapatos') && (
-                <>
-                  <div>
-                    <Label htmlFor="colors">Cores (separadas por vírgula)</Label>
-                    <Input
-                      id="colors"
-                      value={formData.colors}
-                      onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
-                      placeholder="Ex: Azul, Vermelho"
-                    />
-                  </div>
+            <div className="flex-1 overflow-y-auto px-1 pr-2 pb-4">
+              <TabsContent value="geral" className="space-y-4 mt-0">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <Label htmlFor="sizes">Tamanhos (separados por vírgula)</Label>
+                    <Label htmlFor="name">Nome do Produto *</Label>
                     <Input
-                      id="sizes"
-                      value={formData.sizes}
-                      onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
-                      placeholder="Ex: P, M, G, 38, 40"
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: Vestido Longo Floral"
+                      className="mt-1.5"
                     />
                   </div>
-                </>
-              )}
+
+                  <div className="col-span-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      rows={4}
+                      placeholder="Detalhes sobre o produto..."
+                      className="mt-1.5 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="category">Categoria</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, category: value })
+                      }
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="roupas">Roupas</SelectItem>
+                        <SelectItem value="sapatos">Sapatos</SelectItem>
+                        <SelectItem value="moda_praia">Moda Praia</SelectItem>
+                        <SelectItem value="fitness">Fitness</SelectItem>
+                        <SelectItem value="lingerie">Lingerie</SelectItem>
+                        <SelectItem value="infantil">Infantil</SelectItem>
+                        <SelectItem value="masculino">Masculino</SelectItem>
+                        <SelectItem value="bolsas">Bolsas</SelectItem>
+                        <SelectItem value="acessorios">Acessórios</SelectItem>
+                        <SelectItem value="outros">Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="supplier_id">Fornecedor</Label>
+                    <Select
+                      value={formData.supplier_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, supplier_id: value })
+                      }
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none" key="none">Nenhum</SelectItem>
+                        {suppliers?.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-4">
+                    <Switch
+                      id="is_active"
+                      checked={formData.is_active}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, is_active: checked })
+                      }
+                    />
+                    <Label htmlFor="is_active">Produto visível no catálogo</Label>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="detalhes" className="space-y-6 mt-0">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <span className="w-1 h-6 bg-primary rounded-full"></span> Financeiro & Estoque
+                    </h3>
+
+                    <div>
+                      <Label htmlFor="price">Preço de Venda (R$) *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="mt-1.5"
+                        placeholder="0,00"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="stock_quantity">Quantidade em Estoque *</Label>
+                      <Input
+                        id="stock_quantity"
+                        type="number"
+                        value={formData.stock_quantity}
+                        onChange={(e) =>
+                          setFormData({ ...formData, stock_quantity: e.target.value })
+                        }
+                        className="mt-1.5"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <span className="w-1 h-6 bg-purple-500 rounded-full"></span> Características
+                    </h3>
+
+                    {['roupas', 'sapatos', 'moda_praia', 'fitness', 'lingerie', 'infantil', 'masculino'].includes(formData.category) && (
+                      <>
+                        <div className="space-y-1.5">
+                          <Label>Cores Disponíveis</Label>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between text-left font-normal h-auto py-2">
+                                {formData.colors.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {formData.colors.slice(0, 3).map(color => (
+                                      <Badge key={color} variant="secondary" className="text-xs">{color}</Badge>
+                                    ))}
+                                    {formData.colors.length > 3 && (
+                                      <Badge variant="secondary" className="text-xs">+{formData.colors.length - 3}</Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">Selecione as cores...</span>
+                                )}
+                                <ChevronDown className="h-4 w-4 opacity-50 ml-2 shrink-0" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[300px] h-[300px] overflow-hidden p-0" align="start">
+                              <ScrollArea className="h-full p-2">
+                                {AVAILABLE_COLORS.map((color) => (
+                                  <div
+                                    key={color}
+                                    className="flex items-center space-x-2 p-2 hover:bg-accent rounded-sm cursor-pointer"
+                                    onClick={() => toggleColor(color)}
+                                  >
+                                    <Checkbox
+                                      id={`color-${color}`}
+                                      checked={formData.colors.includes(color)}
+                                      onCheckedChange={() => toggleColor(color)}
+                                    />
+                                    <Label htmlFor={`color-${color}`} className="cursor-pointer flex-1">{color}</Label>
+                                  </div>
+                                ))}
+                              </ScrollArea>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="sizes">Tamanhos (separados por vírgula)</Label>
+                          <Input
+                            id="sizes"
+                            value={formData.sizes}
+                            onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                            placeholder="Ex: P, M, G, 38, 40"
+                            className="mt-1.5"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Dica: Use vírgulas para separar as opções.</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="imagens" className="space-y-6 mt-0">
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 bg-muted/20">
+                    <Label htmlFor="image" className="text-base font-semibold">Imagem de Capa</Label>
+                    <p className="text-sm text-muted-foreground mb-3">Esta imagem será exibida nas listagens e como principal.</p>
+
+                    <div className="flex items-start gap-4">
+                      <div className="relative group shrink-0 w-32 h-32 bg-secondary rounded-lg overflow-hidden border">
+                        {(imageFile || selectedProduct?.image_url) ? (
+                          <img
+                            src={imageFile ? URL.createObjectURL(imageFile) : selectedProduct?.image_url || ''}
+                            alt="Capa"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground opacity-50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Label htmlFor="image" className="cursor-pointer text-white text-xs font-medium border border-white/50 px-2 py-1 rounded backdrop-blur-sm hover:bg-white/20">
+                            Trocar
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div className="flex-1">
+                        <Input
+                          id="image"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                        />
+                        <Button variant="outline" size="sm" onClick={() => document.getElementById('image')?.click()}>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Selecionar Arquivo
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Formatos: JPG, PNG, WEBP. Máx: 5MB.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4 bg-muted/20">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <Label htmlFor="additional_images" className="text-base font-semibold">Galeria de Imagens</Label>
+                        <p className="text-sm text-muted-foreground">Adicione mais fotos para mostrar detalhes.</p>
+                      </div>
+                      <div>
+                        <Input
+                          id="additional_images"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) setAdditionalImageFiles(prev => [...prev, ...files]);
+                          }}
+                        />
+                        <Button variant="secondary" size="sm" onClick={() => document.getElementById('additional_images')?.click()}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Fotos
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Gallery Grid */}
+                    <div className="grid grid-cols-4 gap-4 mt-4">
+                      {/* Existing Images */}
+                      {existingAdditionalImages.map((img, index) => (
+                        <div key={`existing-${index}`} className="relative group aspect-square rounded-md overflow-hidden bg-background border">
+                          <img src={img} alt={`Galeria ${index}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeExistingImage(index)}
+                            className="absolute top-1 right-1 h-6 w-6 bg-red-500/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 shadow-sm"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          <Badge variant="secondary" className="absolute bottom-1 left-1 text-[10px] h-5 px-1 opacity-70">Salva</Badge>
+                        </div>
+                      ))}
+
+                      {/* New Files */}
+                      {additionalImageFiles.map((file, index) => (
+                        <div key={`new-${index}`} className="relative group aspect-square rounded-md overflow-hidden bg-background border">
+                          <img src={URL.createObjectURL(file)} alt={`Novo ${index}`} className="w-full h-full object-cover opacity-90" />
+                          <button
+                            onClick={() => removeNewImage(index)}
+                            className="absolute top-1 right-1 h-6 w-6 bg-red-500/90 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 shadow-sm"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          <Badge className="absolute bottom-1 left-1 text-[10px] h-5 px-1 bg-green-500/90 hover:bg-green-600">Nova</Badge>
+                        </div>
+                      ))}
+
+                      {existingAdditionalImages.length === 0 && additionalImageFiles.length === 0 && (
+                        <div className="col-span-full py-8 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
+                          <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                          <p>Nenhuma imagem extra adicionada</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, is_active: checked })
-                }
-              />
-              <Label htmlFor="is_active">Produto Ativo</Label>
-            </div>
-          </div>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancelar
