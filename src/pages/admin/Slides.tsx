@@ -53,37 +53,28 @@ export default function Slides() {
         .from("BeloriBH_slides")
         .select("*")
         .order("display_order", { ascending: true });
-      
+
       if (error) throw error;
       return data as Slide[];
     },
   });
 
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("BeloriBH_slides")
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("BeloriBH_slides")
-      .getPublicUrl(filePath);
-
-    return publicUrl;
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const createMutation = useMutation({
     mutationFn: async (data: SlideFormData) => {
       setUploading(true);
       let imageUrl = "";
-      
+
       if (data.image_file) {
-        imageUrl = await uploadImage(data.image_file);
+        imageUrl = await convertToBase64(data.image_file);
       }
 
       const { error } = await supabase.from("BeloriBH_slides").insert({
@@ -116,7 +107,7 @@ export default function Slides() {
       let imageUrl = editingSlide?.image_url || "";
 
       if (data.image_file) {
-        imageUrl = await uploadImage(data.image_file);
+        imageUrl = await convertToBase64(data.image_file);
       }
 
       const { error } = await supabase
@@ -200,7 +191,7 @@ export default function Slides() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.image_file && !editingSlide) {
       toast.error("Selecione uma imagem");
       return;
@@ -215,7 +206,7 @@ export default function Slides() {
 
   const moveSlide = (slide: Slide, direction: "up" | "down") => {
     if (!slides) return;
-    
+
     const currentIndex = slides.findIndex((s) => s.id === slide.id);
     if (
       (direction === "up" && currentIndex === 0) ||
@@ -408,11 +399,10 @@ export default function Slides() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            slide.is_active
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slide.is_active
                               ? "bg-green-100 text-green-800"
                               : "bg-gray-100 text-gray-800"
-                          }`}
+                            }`}
                         >
                           {slide.is_active ? "Ativo" : "Inativo"}
                         </span>
