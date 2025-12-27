@@ -37,18 +37,33 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Usar credenciais do .env
-    const accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+    // Tentar primeiro variáveis de ambiente, depois banco de dados como fallback
+    let accessToken = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN');
+
+    if (accessToken) {
+      console.log('Using Mercado Pago Access Token from environment variables');
+    } else {
+      // Fallback: buscar do banco de dados
+      console.log('MERCADO_PAGO_ACCESS_TOKEN not in env, trying database...');
+      const { data: paymentSettings, error: paymentSettingsError } = await supabase
+        .from('BeloriBH_payment_settings')
+        .select('access_token, is_active')
+        .eq('provider', 'mercadopago')
+        .maybeSingle();
+
+      if (!paymentSettingsError && paymentSettings?.is_active && paymentSettings?.access_token) {
+        console.log('Using Mercado Pago Access Token from database');
+        accessToken = paymentSettings.access_token;
+      }
+    }
 
     if (!accessToken) {
-      console.error('MERCADO_PAGO_ACCESS_TOKEN not configured in environment variables');
+      console.error('MERCADO_PAGO_ACCESS_TOKEN not configured in env or database');
       return new Response(
-        JSON.stringify({ error: 'Mercado Pago não configurado. Configure MERCADO_PAGO_ACCESS_TOKEN nas variáveis de ambiente.' }),
+        JSON.stringify({ error: 'Mercado Pago não configurado. Configure MERCADO_PAGO_ACCESS_TOKEN ou ative nas configurações do admin.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('Using Mercado Pago Access Token from environment variables');
 
     const { items, customer, backUrls, orderNumber } = await req.json() as {
       items: CartItem[];
