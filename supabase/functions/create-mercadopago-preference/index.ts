@@ -59,9 +59,10 @@ serve(async (req: Request) => {
       );
     }
 
-    const { items, customer, backUrls } = await req.json() as {
+    const { items, customer, backUrls, orderNumber } = await req.json() as {
       items: CartItem[];
       customer: CustomerInfo;
+      orderNumber?: string;
       backUrls?: {
         success?: string;
         failure?: string;
@@ -71,96 +72,11 @@ serve(async (req: Request) => {
 
     console.log('Creating preference for items:', items);
     console.log('Customer:', customer);
+    console.log('Order Number:', orderNumber);
 
-    // Generate order number
-
-    // Generate order number
-    const { data: orderNumberData, error: orderNumberError } = await supabase
-      .rpc('generate_order_number');
-
-    if (orderNumberError) {
-      console.error('Error generating order number:', orderNumberError);
-      throw new Error('Erro ao gerar número do pedido');
-    }
-
-    const orderNumber = orderNumberData;
-    console.log('Generated order number:', orderNumber);
-
-    // Calculate total
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    // Create or find customer
-    let customerId: string | null = null;
-    const { data: existingCustomer } = await supabase
-      .from('BeloriBH_customers')
-      .select('id')
-      .eq('email', customer.email)
-      .single();
-
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-    } else {
-      const { data: newCustomer, error: customerError } = await supabase
-        .from('BeloriBH_customers')
-        .insert({
-          email: customer.email,
-          full_name: customer.name,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          postal_code: customer.postalCode,
-        })
-        .select('id')
-        .single();
-
-      if (customerError) {
-        console.error('Error creating customer:', customerError);
-      } else {
-        customerId = newCustomer?.id || null;
-      }
-    }
-
-    // Create order in database with pending status
-    const { data: order, error: orderError } = await supabase
-      .from('BeloriBH_orders')
-      .insert({
-        order_number: orderNumber,
-        customer_id: customerId,
-        customer_name: customer.name,
-        customer_email: customer.email,
-        total_amount: totalAmount,
-        status: 'pending',
-        payment_method: 'mercadopago',
-        shipping_address: customer.address ?
-          `${customer.address}, ${customer.city} - ${customer.state}, ${customer.postalCode}` : null,
-      })
-      .select('id')
-      .single();
-
-    if (orderError) {
-      console.error('Error creating order:', orderError);
-      throw new Error('Erro ao criar pedido');
-    }
-
-    console.log('Created order:', order);
-
-    // Create order items
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      product_title: item.name,
-      variant_id: item.productId,
-      quantity: item.quantity,
-      price: item.price,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('BeloriBH_order_items')
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError);
+    // Validate if orderNumber is provided (new flow)
+    if (!orderNumber) {
+      throw new Error('Número do pedido não fornecido');
     }
 
     // Build Mercado Pago preference
