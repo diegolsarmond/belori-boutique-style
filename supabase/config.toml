@@ -1,10 +1,7 @@
 project_id = "mvsoifhykosbvajpcmdl"
 
-[functions.create-shopify-product]
+[functions.create-mercadopago-preference]
 verify_jwt = false
 
-[functions.update-shopify-product]
-verify_jwt = false
-
-[functions.delete-shopify-product]
+[functions.mercadopago-webhook]
 verify_jwt = false
