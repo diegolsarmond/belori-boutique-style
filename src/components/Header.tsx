@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu, Shield } from "lucide-react";
+import { Menu, Shield, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -29,6 +29,7 @@ const fixedNavigation = [
 ];
 
 const endNavigation = [
+  { name: "Meus Pedidos", href: "/acompanhar-pedido" },
   { name: "Sobre", href: "/sobre" },
 ];
 
