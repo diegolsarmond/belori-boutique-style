@@ -22,8 +22,7 @@ import {
   Hash,
   ExternalLink,
   Copy,
-  Check,
-  MapPin
+  Check
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -67,6 +66,28 @@ const statusConfig: Record<string, { label: string; icon: React.ReactNode; color
 // Status order for timeline
 const statusOrder = ["pending", "paid", "processing", "shipped", "delivered"];
 
+interface OrderData {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_email: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  tracking_code?: string;
+  tracking_url?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+}
+
+interface OrderItem {
+  id: string;
+  product_title: string;
+  variant_title?: string;
+  quantity: number;
+  price: number;
+}
+
 export default function AcompanharPedido() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialOrderNumber = searchParams.get("order") || "";
@@ -78,70 +99,66 @@ export default function AcompanharPedido() {
   const [searchedValue, setSearchedValue] = useState(initialOrderNumber || initialEmail);
   const [searchedType, setSearchedType] = useState<"order" | "email">(initialEmail ? "email" : "order");
   const [copiedTracking, setCopiedTracking] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  // Query for order by number
-  const { data: orderByNumber, isLoading: isLoadingByNumber } = useQuery({
+  // Query for order by number using RPC
+  const { data: orderByNumber, isLoading: isLoadingByNumber, error: errorByNumber } = useQuery({
     queryKey: ["order-tracking-number", searchedValue],
     queryFn: async () => {
       if (!searchedValue || searchedType !== "order") return null;
 
-      const { data, error } = await supabase
-        .from("BeloriBH_orders")
-        .select("*")
-        .eq("order_number", searchedValue)
-        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .rpc("track_order_by_number", { p_order_number: searchedValue });
 
       if (error) throw error;
-      return data;
+      return data && Array.isArray(data) && data.length > 0 ? data[0] as OrderData : null;
     },
     enabled: !!searchedValue && searchedType === "order",
   });
 
-  // Query for orders by email
-  const { data: ordersByEmail, isLoading: isLoadingByEmail } = useQuery({
+  // Query for orders by email using RPC
+  const { data: ordersByEmail, isLoading: isLoadingByEmail, error: errorByEmail } = useQuery({
     queryKey: ["order-tracking-email", searchedValue],
     queryFn: async () => {
       if (!searchedValue || searchedType !== "email") return null;
 
-      const { data, error } = await supabase
-        .from("BeloriBH_orders")
-        .select("*")
-        .eq("customer_email", searchedValue.toLowerCase())
-        .order("created_at", { ascending: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .rpc("track_orders_by_email", { p_email: searchedValue.toLowerCase() });
 
       if (error) throw error;
-      return data;
+      return (data || []) as OrderData[];
     },
     enabled: !!searchedValue && searchedType === "email",
   });
 
-  // Query for order items
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  // Query for order items using RPC
   const { data: orderItems } = useQuery({
-    queryKey: ["order-items", selectedOrderId],
+    queryKey: ["order-items-public", selectedOrderId],
     queryFn: async () => {
       if (!selectedOrderId) return [];
-      const { data } = await supabase
-        .from("BeloriBH_order_items")
-        .select("*")
-        .eq("order_id", selectedOrderId);
-      return data || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .rpc("get_order_items_public", { p_order_id: selectedOrderId });
+
+      if (error) throw error;
+      return (data || []) as OrderItem[];
     },
     enabled: !!selectedOrderId,
   });
 
   const isLoading = isLoadingByNumber || isLoadingByEmail;
+  const hasError = errorByNumber || errorByEmail;
   const order = searchedType === "order" ? orderByNumber : null;
   const orders = searchedType === "email" ? ordersByEmail : null;
 
-  // Set selected order for items
-  useState(() => {
-    if (order) {
-      setSelectedOrderId(order.id);
-    } else if (orders && orders.length > 0) {
-      setSelectedOrderId(orders[0].id);
-    }
-  });
+  // Set selected order for items when order changes
+  if (order && order.id !== selectedOrderId) {
+    setSelectedOrderId(order.id);
+  } else if (orders && orders.length > 0 && !selectedOrderId) {
+    setSelectedOrderId(orders[0].id);
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +166,7 @@ export default function AcompanharPedido() {
     if (value) {
       setSearchedValue(value);
       setSearchedType(searchType);
+      setSelectedOrderId(null);
       if (searchType === "order") {
         setSearchParams({ order: value });
       } else {
@@ -167,13 +185,13 @@ export default function AcompanharPedido() {
     return statusOrder.indexOf(status);
   };
 
-  const renderOrderDetails = (orderData: any) => {
+  const renderOrderDetails = (orderData: OrderData) => {
     const status = orderData?.status ? statusConfig[orderData.status] : null;
     const currentOrderItems = orderData?.id === selectedOrderId ? orderItems : [];
 
     return (
-      <Card key={orderData.id}>
-        <CardHeader>
+      <Card key={orderData.id} className={orders && orders.length > 1 ? "cursor-pointer hover:border-primary/50 transition-colors" : ""}>
+        <CardHeader onClick={() => orders && orders.length > 1 && setSelectedOrderId(orderData.id)}>
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <CardTitle className="font-mono text-xl">{orderData.order_number}</CardTitle>
@@ -250,21 +268,22 @@ export default function AcompanharPedido() {
                 <Truck className="h-5 w-5 text-purple-600 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="font-semibold text-purple-800">Código de Rastreio</h4>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="bg-white px-3 py-1.5 rounded border font-mono text-sm flex-1">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <code className="bg-white px-3 py-1.5 rounded border font-mono text-sm">
                       {orderData.tracking_code}
                     </code>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleCopyTracking(orderData.tracking_code)}
+                      onClick={() => handleCopyTracking(orderData.tracking_code!)}
                     >
                       {copiedTracking ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                     {orderData.tracking_url && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={orderData.tracking_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Rastrear
                         </a>
                       </Button>
                     )}
@@ -282,18 +301,16 @@ export default function AcompanharPedido() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">
-                {orderData.customer_email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
-              </p>
+              <p className="font-medium">{orderData.customer_email}</p>
             </div>
           </div>
 
           {/* Order Items */}
-          {currentOrderItems && currentOrderItems.length > 0 && (
+          {currentOrderItems && currentOrderItems.length > 0 && selectedOrderId === orderData.id && (
             <div>
               <h4 className="font-semibold mb-3">Itens do pedido</h4>
               <div className="space-y-3">
-                {currentOrderItems.map((item: any) => (
+                {currentOrderItems.map((item) => (
                   <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0">
                     <div>
                       <p className="font-medium">{item.product_title}</p>
@@ -405,8 +422,21 @@ export default function AcompanharPedido() {
             </Card>
           )}
 
+          {/* Error State */}
+          {hasError && !isLoading && (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Erro ao buscar pedido</h3>
+                <p className="text-muted-foreground">
+                  Ocorreu um erro ao buscar o pedido. Tente novamente.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Not Found */}
-          {searchedValue && !isLoading && !order && (!orders || orders.length === 0) && (
+          {searchedValue && !isLoading && !hasError && !order && (!orders || orders.length === 0) && (
             <Card>
               <CardContent className="py-12 text-center">
                 <XCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -434,11 +464,7 @@ export default function AcompanharPedido() {
                   Encontramos <strong>{orders.length}</strong> pedido{orders.length > 1 ? 's' : ''} para este email
                 </p>
               </div>
-              {orders.map((orderData) => (
-                <div key={orderData.id} onClick={() => setSelectedOrderId(orderData.id)}>
-                  {renderOrderDetails(orderData)}
-                </div>
-              ))}
+              {orders.map((orderData) => renderOrderDetails(orderData))}
             </div>
           )}
         </div>
